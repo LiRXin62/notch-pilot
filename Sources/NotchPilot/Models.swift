@@ -1,0 +1,167 @@
+import Foundation
+
+enum IslandModuleKind: String, Codable, CaseIterable, Identifiable {
+    case dashboard
+    case todos
+    case timer
+    case launchers
+    case files
+    case notes
+    case system
+    case calendar
+    case clipboard
+    case weather
+    case ai
+    case settings
+
+    var id: String { rawValue }
+
+    static let defaultEnabled: [IslandModuleKind] = [
+        .dashboard,
+        .todos,
+        .timer,
+        .launchers,
+        .files,
+        .notes,
+        .system,
+        .clipboard,
+        .settings
+    ]
+
+    static var defaultEnabledIDs: [String] {
+        defaultEnabled.map(\.rawValue)
+    }
+
+    var title: String {
+        switch self {
+        case .dashboard: return "总览"
+        case .todos: return "待办"
+        case .timer: return "专注"
+        case .launchers: return "启动"
+        case .files: return "文件"
+        case .notes: return "速记"
+        case .system: return "系统"
+        case .calendar: return "日程"
+        case .clipboard: return "剪贴板"
+        case .weather: return "天气"
+        case .ai: return "AI"
+        case .settings: return "设置"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .dashboard: return "rectangle.3.group"
+        case .todos: return "checklist"
+        case .timer: return "timer"
+        case .launchers: return "app"
+        case .files: return "folder"
+        case .notes: return "note.text"
+        case .system: return "cpu"
+        case .calendar: return "calendar"
+        case .clipboard: return "doc.on.clipboard"
+        case .weather: return "cloud.sun"
+        case .ai: return "sparkles"
+        case .settings: return "gearshape"
+        }
+    }
+}
+
+struct AppSettings: Codable, Equatable {
+    var compactWidth: Double = 288
+    var compactHeight: Double = 36
+    var expandedWidth: Double = 720
+    var expandedHeight: Double = 430
+    var expandOnHover: Bool = true
+    var showOnAllDisplays: Bool = false
+    var hideInFullscreen: Bool = false
+    var showModuleIcons: Bool = true
+    var hoverDelay: Double = 0.08
+    var activeModuleRawValue: String = IslandModuleKind.dashboard.rawValue
+    var enabledModuleIDs: [String] = IslandModuleKind.defaultEnabledIDs
+    var moduleOrderIDs: [String] = IslandModuleKind.allCases.map(\.rawValue)
+    var pomodoroFocusMinutes: Int = 25
+    var pomodoroBreakMinutes: Int = 5
+}
+
+struct TodoItem: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var title: String
+    var notes: String = ""
+    var isCompleted: Bool = false
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+}
+
+struct LaunchItem: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var title: String
+    var path: String
+    var bundleIdentifier: String = ""
+    var addedAt: Date = Date()
+}
+
+struct ShelfItem: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var fileName: String
+    var path: String
+    var addedAt: Date = Date()
+}
+
+struct QuickNote: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var content: String
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+}
+
+struct AppSnapshot: Codable {
+    var settings: AppSettings = AppSettings()
+    var todos: [TodoItem] = []
+    var launchItems: [LaunchItem] = []
+    var shelfItems: [ShelfItem] = []
+    var notes: [QuickNote] = []
+}
+
+struct SystemSnapshot: Codable, Equatable {
+    var batteryText: String = "Power --"
+    var cpuText: String = "CPU --"
+    var memoryText: String = "Memory --"
+    var networkText: String = "Network --"
+
+    static let placeholder = SystemSnapshot()
+}
+
+enum PomodoroPhase: String, Codable, CaseIterable {
+    case focus
+    case breakTime
+
+    var title: String {
+        switch self {
+        case .focus: return "专注"
+        case .breakTime: return "休息"
+        }
+    }
+}
+
+enum DateFormatters {
+    static let time: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    static let date: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
+    static let shortDateTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter
+    }()
+}
