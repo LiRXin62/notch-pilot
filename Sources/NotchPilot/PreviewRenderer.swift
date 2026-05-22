@@ -20,10 +20,11 @@ enum PreviewRenderer {
         let musicService = MusicService()
         let cameraService = CameraMirrorService()
         let shortcutsService = ShortcutsService()
+        let localizer = Localizer()
 
         let compactView = ZStack(alignment: .topLeading) {
             IslandBackground(isExpanded: false)
-            CompactIslandView(store: store, timerModel: timerModel, now: Date())
+            CompactIslandView(store: store, timerModel: timerModel, localizer: localizer, now: Date())
         }
         .frame(width: 288, height: 36)
         .padding(4)
@@ -40,6 +41,7 @@ enum PreviewRenderer {
                 musicService: musicService,
                 cameraService: cameraService,
                 shortcutsService: shortcutsService,
+                localizer: localizer,
                 now: Date(),
                 onCollapse: {},
                 onShowSettings: {}

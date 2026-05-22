@@ -5,40 +5,41 @@ import UniformTypeIdentifiers
 struct DashboardModuleView: View {
     @ObservedObject var store: AppStore
     @ObservedObject var timerModel: PomodoroModel
+    @EnvironmentObject var localizer: Localizer
     let now: Date
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 16) {
                 ModuleHeader(
-                    title: "今日总览",
-                    subtitle: "把正在发生的事收进顶部",
+                    title: localizer.t("今日总览"),
+                    subtitle: localizer.t("把正在发生的事收进顶部"),
                     symbolName: "rectangle.3.group",
                     tint: NPTheme.cyan
                 )
 
                 HStack(spacing: 10) {
-                    SummaryTile(title: "待办", value: "\(store.todos.filter { !$0.isCompleted }.count)", symbolName: "checklist", tint: NPTheme.green)
-                    SummaryTile(title: "专注", value: timerModel.remainingText, symbolName: "timer", tint: NPTheme.amber)
-                    SummaryTile(title: "启动", value: "\(store.launchItems.count)", symbolName: "app", tint: NPTheme.rose)
-                    SummaryTile(title: "文件", value: "\(store.shelfItems.count)", symbolName: "folder", tint: NPTheme.cyan)
+                    SummaryTile(title: localizer.t("待办"), value: "\(store.todos.filter { !$0.isCompleted }.count)", symbolName: "checklist", tint: NPTheme.green)
+                    SummaryTile(title: localizer.t("专注"), value: timerModel.remainingText, symbolName: "timer", tint: NPTheme.amber)
+                    SummaryTile(title: localizer.t("启动"), value: "\(store.launchItems.count)", symbolName: "app", tint: NPTheme.rose)
+                    SummaryTile(title: localizer.t("文件暂存"), value: "\(store.shelfItems.count)", symbolName: "folder", tint: NPTheme.cyan)
                 }
 
                 HStack(alignment: .top, spacing: 10) {
                     DashboardListPanel(
-                        title: "下一步",
+                        title: localizer.t("下一步"),
                         symbolName: "arrow.forward.circle",
                         tint: NPTheme.green,
                         items: store.todos.filter { !$0.isCompleted }.prefix(4).map(\.title),
-                        emptyText: "今天没有待办。"
+                        emptyText: localizer.t("今天没有待办。")
                     )
 
                     DashboardListPanel(
-                        title: "最近速记",
+                        title: localizer.t("最近速记"),
                         symbolName: "note.text",
                         tint: NPTheme.rose,
                         items: store.notes.prefix(4).map(\.content),
-                        emptyText: "还没有速记。"
+                        emptyText: localizer.t("还没有速记。")
                     )
                 }
 
@@ -50,20 +51,21 @@ struct DashboardModuleView: View {
 
 struct TodoModuleView: View {
     @ObservedObject var store: AppStore
+    @EnvironmentObject var localizer: Localizer
     @State private var draft = ""
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 12) {
                 ModuleHeader(
-                    title: "待办",
-                    subtitle: "回车添加，点圆圈完成",
+                    title: localizer.t("待办"),
+                    subtitle: localizer.t("回车添加，点圆圈完成"),
                     symbolName: "checklist",
                     tint: NPTheme.green
                 )
 
                 HStack(spacing: 8) {
-                    TextField("添加一个任务", text: $draft)
+                    TextField(localizer.t("添加一个任务"), text: $draft)
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
@@ -75,7 +77,7 @@ struct TodoModuleView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         .onSubmit(addTodo)
 
-                    SmallActionButton(symbolName: "plus", accent: NPTheme.green, help: "添加", action: addTodo)
+                    SmallActionButton(symbolName: "plus", accent: NPTheme.green, help: localizer.t("添加"), action: addTodo)
                 }
 
                 ScrollView {
@@ -133,20 +135,21 @@ struct TodoModuleView: View {
 struct TimerModuleView: View {
     @ObservedObject var store: AppStore
     @ObservedObject var timerModel: PomodoroModel
+    @EnvironmentObject var localizer: Localizer
 
     var body: some View {
         ModuleContainer {
             VStack(spacing: 18) {
                 ModuleHeader(
-                    title: "专注计时",
-                    subtitle: "一个小而安静的番茄钟",
+                    title: localizer.t("专注计时"),
+                    subtitle: localizer.t("一个小而安静的番茄钟"),
                     symbolName: "timer",
                     tint: NPTheme.amber
                 )
 
-                Picker("模式", selection: phaseBinding) {
+                Picker(localizer.t("模式"), selection: phaseBinding) {
                     ForEach(PomodoroPhase.allCases, id: \.self) { phase in
-                        Text(phase.title).tag(phase)
+                        Text(localizer.t(phase.title)).tag(phase)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -160,20 +163,20 @@ struct TimerModuleView: View {
                     .tint(NPTheme.amber)
 
                 HStack {
-                    Button(timerModel.isRunning ? "暂停" : "开始") {
+                    Button(timerModel.isRunning ? localizer.t("暂停") : localizer.t("开始")) {
                         timerModel.startPause()
                     }
                     .buttonStyle(.borderedProminent)
 
-                    Button("重置") {
+                    Button(localizer.t("重置")) {
                         timerModel.reset()
                     }
                     .buttonStyle(.bordered)
                 }
 
                 HStack {
-                    Stepper("专注 \(store.settings.pomodoroFocusMinutes)m", value: store.binding(\.pomodoroFocusMinutes), in: 1...180)
-                    Stepper("休息 \(store.settings.pomodoroBreakMinutes)m", value: store.binding(\.pomodoroBreakMinutes), in: 1...60)
+                    Stepper(localizer.t("专注") + " \(store.settings.pomodoroFocusMinutes)m", value: store.binding(\.pomodoroFocusMinutes), in: 1...180)
+                    Stepper(localizer.t("休息") + " \(store.settings.pomodoroBreakMinutes)m", value: store.binding(\.pomodoroBreakMinutes), in: 1...60)
                 }
                 .font(.system(size: 12))
             }
@@ -190,6 +193,7 @@ struct TimerModuleView: View {
 
 struct LauncherModuleView: View {
     @ObservedObject var store: AppStore
+    @EnvironmentObject var localizer: Localizer
 
     private let columns = [
         GridItem(.adaptive(minimum: 88), spacing: 10)
@@ -200,13 +204,13 @@ struct LauncherModuleView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     ModuleHeader(
-                        title: "快捷启动",
-                        subtitle: "常用 App 放在顶部",
+                        title: localizer.t("快捷启动"),
+                        subtitle: localizer.t("常用 App 放在顶部"),
                         symbolName: "app",
                         tint: NPTheme.rose
                     )
                     Spacer()
-                    SmallActionButton(symbolName: "plus", accent: NPTheme.rose, help: "添加 App", action: pickApplication)
+                    SmallActionButton(symbolName: "plus", accent: NPTheme.rose, help: localizer.t("添加 App"), action: pickApplication)
                 }
 
                 ScrollView {
@@ -260,6 +264,7 @@ struct LauncherModuleView: View {
 
 struct FileShelfModuleView: View {
     @ObservedObject var store: AppStore
+    @EnvironmentObject var localizer: Localizer
     @State private var isTargeted = false
 
     var body: some View {
@@ -267,14 +272,14 @@ struct FileShelfModuleView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     ModuleHeader(
-                        title: "文件暂存",
-                        subtitle: "拖进来，等会儿再拿走",
+                        title: localizer.t("文件暂存"),
+                        subtitle: localizer.t("拖进来，等会儿再拿走"),
                         symbolName: "folder",
                         tint: NPTheme.cyan
                     )
                     Spacer()
                     if !store.shelfItems.isEmpty {
-                        Button("清空") {
+                        Button(localizer.t("清除")) {
                             store.clearShelf()
                         }
                         .buttonStyle(.bordered)
@@ -289,7 +294,7 @@ struct FileShelfModuleView: View {
                         VStack(spacing: 8) {
                             Image(systemName: "tray.and.arrow.down")
                                 .font(.system(size: 24))
-                            Text("把文件或 App 拖到这里")
+                            Text(localizer.t("把文件或 App 拖到这里"))
                                 .font(.system(size: 13, weight: .medium))
                         }
                         .foregroundStyle(.white.opacity(0.74))
@@ -375,14 +380,15 @@ struct FileShelfModuleView: View {
 
 struct NotesModuleView: View {
     @ObservedObject var store: AppStore
+    @EnvironmentObject var localizer: Localizer
     @State private var draft = ""
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 12) {
                 ModuleHeader(
-                    title: "速记",
-                    subtitle: "临时想法先收住",
+                    title: localizer.t("速记"),
+                    subtitle: localizer.t("临时想法先收住"),
                     symbolName: "note.text",
                     tint: NPTheme.rose
                 )
@@ -401,7 +407,7 @@ struct NotesModuleView: View {
                         store.addNote(draft)
                         draft = ""
                     } label: {
-                        Label("保存", systemImage: "square.and.arrow.down")
+                        Label(localizer.t("保存"), systemImage: "square.and.arrow.down")
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
@@ -419,7 +425,7 @@ struct NotesModuleView: View {
                                         .font(.system(size: 11))
                                         .foregroundStyle(.white.opacity(0.48))
                                     Spacer()
-                                    Button("转待办") {
+                                    Button(localizer.t("转待办")) {
                                         store.convertNoteToTodo(note)
                                     }
                                     .controlSize(.small)
@@ -443,25 +449,26 @@ struct NotesModuleView: View {
 }
 
 struct SystemModuleView: View {
+    @EnvironmentObject var localizer: Localizer
     @State private var snapshot = SystemSampler.snapshot()
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 16) {
                 ModuleHeader(
-                    title: "系统",
-                    subtitle: "只放必要状态，不抢注意力",
+                    title: localizer.t("系统"),
+                    subtitle: localizer.t("只放必要状态，不抢注意力"),
                     symbolName: "cpu",
                     tint: NPTheme.green
                 )
 
                 HStack(spacing: 10) {
-                    SummaryTile(title: "电源", value: snapshot.batteryText, symbolName: "battery.100", tint: NPTheme.green)
+                    SummaryTile(title: localizer.t("电源"), value: snapshot.batteryText, symbolName: "battery.100", tint: NPTheme.green)
                     SummaryTile(title: "CPU", value: snapshot.cpuText, symbolName: "cpu", tint: NPTheme.amber)
                 }
                 HStack(spacing: 10) {
-                    SummaryTile(title: "内存", value: snapshot.memoryText, symbolName: "memorychip", tint: NPTheme.cyan)
-                    SummaryTile(title: "网络", value: snapshot.networkText, symbolName: "network", tint: NPTheme.rose)
+                    SummaryTile(title: localizer.t("内存"), value: snapshot.memoryText, symbolName: "memorychip", tint: NPTheme.cyan)
+                    SummaryTile(title: localizer.t("网络"), value: snapshot.networkText, symbolName: "network", tint: NPTheme.rose)
                 }
 
                 Spacer()
@@ -478,6 +485,7 @@ struct SystemModuleView: View {
 
 struct ClipboardModuleView: View {
     @ObservedObject var clipboardService: ClipboardService
+    @EnvironmentObject var localizer: Localizer
     @State private var searchText = ""
     @State private var showSensitive = false
 
@@ -496,8 +504,8 @@ struct ClipboardModuleView: View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 12) {
                 ModuleHeader(
-                    title: "剪贴板",
-                    subtitle: "\(clipboardService.entries.count) 条记录",
+                    title: localizer.t("剪贴板"),
+                    subtitle: "\(clipboardService.entries.count) " + localizer.t("条记录"),
                     symbolName: "doc.on.clipboard",
                     tint: NPTheme.amber
                 )
@@ -505,7 +513,7 @@ struct ClipboardModuleView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(.white.opacity(0.4))
-                    TextField("搜索…", text: $searchText)
+                    TextField(localizer.t("搜索…"), text: $searchText)
                         .textFieldStyle(.plain)
                         .font(.system(size: 12))
                 }
@@ -523,11 +531,11 @@ struct ClipboardModuleView: View {
                 }
 
                 HStack {
-                    Toggle("显示敏感内容", isOn: $showSensitive)
+                    Toggle(localizer.t("显示敏感内容"), isOn: $showSensitive)
                         .font(.system(size: 10))
                         .toggleStyle(.checkbox)
                     Spacer()
-                    Button("清空未置顶") { clipboardService.clearUnpinned() }
+                    Button(localizer.t("清空未置顶")) { clipboardService.clearUnpinned() }
                         .font(.system(size: 10))
                         .foregroundStyle(.white.opacity(0.4))
                         .buttonStyle(.plain)
@@ -553,7 +561,7 @@ struct ClipboardModuleView: View {
                         .foregroundStyle(NPTheme.mutedText)
 
                     if entry.isSensitive {
-                        Text("敏感")
+                        Text(localizer.t("敏感"))
                             .font(.system(size: 8, weight: .medium))
                             .foregroundStyle(NPTheme.amber)
                             .padding(.horizontal, 4)
@@ -605,22 +613,23 @@ struct ClipboardModuleView: View {
 
     private func timeSince(_ date: Date) -> String {
         let seconds = Int(Date().timeIntervalSince(date))
-        if seconds < 60 { return "刚刚" }
-        if seconds < 3600 { return "\(seconds / 60)分钟前" }
-        if seconds < 86400 { return "\(seconds / 3600)小时前" }
-        return "\(seconds / 86400)天前"
+        if seconds < 60 { return localizer.t("刚刚") }
+        if seconds < 3600 { return "\(seconds / 60)" + localizer.t("分钟前") }
+        if seconds < 86400 { return "\(seconds / 3600)" + localizer.t("小时前") }
+        return "\(seconds / 86400)" + localizer.t("天前")
     }
 }
 
 struct CalendarModuleView: View {
     @ObservedObject var calendarService: CalendarService
+    @EnvironmentObject var localizer: Localizer
     @State private var newReminderTitle = ""
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 12) {
                 ModuleHeader(
-                    title: "日程",
+                    title: localizer.t("日程"),
                     subtitle: DateFormatters.date.string(from: Date()),
                     symbolName: "calendar",
                     tint: NPTheme.green
@@ -650,10 +659,10 @@ struct CalendarModuleView: View {
             Image(systemName: "calendar.badge.exclamationmark")
                 .font(.system(size: 28))
                 .foregroundStyle(NPTheme.amber)
-            Text("需要日历权限来显示日程")
+            Text(localizer.t("需要日历权限来显示日程"))
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.72))
-            Button("授权日历访问") {
+            Button(localizer.t("授权日历访问")) {
                 calendarService.requestAccess()
             }
             .buttonStyle(.borderedProminent)
@@ -668,10 +677,10 @@ struct CalendarModuleView: View {
             Image(systemName: "lock.shield")
                 .font(.system(size: 24))
                 .foregroundStyle(.white.opacity(0.5))
-            Text("日历权限被拒绝")
+            Text(localizer.t("日历权限被拒绝"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.72))
-            Text("请在系统设置 → 隐私与安全 → 日历中授权")
+            Text(localizer.t("请在系统设置 → 隐私与安全 → 日历中授权"))
                 .font(.system(size: 11))
                 .foregroundStyle(NPTheme.mutedText)
         }
@@ -683,7 +692,7 @@ struct CalendarModuleView: View {
         VStack(alignment: .leading, spacing: 10) {
             // Events section
             if !calendarService.events.isEmpty {
-                Text("今日日程")
+                Text(localizer.t("今日日程"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(NPTheme.mutedText)
 
@@ -698,7 +707,7 @@ struct CalendarModuleView: View {
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.white.opacity(0.88))
                                 .lineLimit(1)
-                            Text(event.timeRangeText)
+                            Text(event.isAllDay ? localizer.t("全天") : event.timeRangeText)
                                 .font(.system(size: 10))
                                 .foregroundStyle(NPTheme.mutedText)
                         }
@@ -713,7 +722,7 @@ struct CalendarModuleView: View {
                     .panelRow()
                 }
             } else {
-                Text("今日无日程")
+                Text(localizer.t("今日无日程"))
                     .font(.system(size: 12))
                     .foregroundStyle(NPTheme.mutedText)
                     .padding(.vertical, 8)
@@ -721,7 +730,7 @@ struct CalendarModuleView: View {
 
             // Reminders section
             HStack {
-                Text("提醒事项")
+                Text(localizer.t("提醒事项"))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(NPTheme.mutedText)
                 Spacer()
@@ -775,7 +784,7 @@ struct CalendarModuleView: View {
 
             // Add reminder
             HStack(spacing: 8) {
-                TextField("添加提醒…", text: $newReminderTitle)
+                TextField(localizer.t("添加提醒…"), text: $newReminderTitle)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .padding(.horizontal, 8)
@@ -820,13 +829,14 @@ extension Color {
 
 struct MusicModuleView: View {
     @ObservedObject var musicService: MusicService
+    @EnvironmentObject var localizer: Localizer
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 14) {
                 ModuleHeader(
-                    title: "音乐",
-                    subtitle: musicService.nowPlaying.appName.isEmpty ? "未检测到播放" : musicService.nowPlaying.appName,
+                    title: localizer.t("音乐"),
+                    subtitle: musicService.nowPlaying.appName.isEmpty ? localizer.t("未检测到播放") : musicService.nowPlaying.appName,
                     symbolName: "music.note",
                     tint: NPTheme.rose
                 )
@@ -849,10 +859,10 @@ struct MusicModuleView: View {
             Image(systemName: "music.note.list")
                 .font(.system(size: 28))
                 .foregroundStyle(.white.opacity(0.3))
-            Text("正在检测音乐播放…")
+            Text(localizer.t("正在检测音乐播放…"))
                 .font(.system(size: 12))
                 .foregroundStyle(NPTheme.mutedText)
-            Text("支持 Apple Music 和 Spotify")
+            Text(localizer.t("支持 Apple Music 和 Spotify"))
                 .font(.system(size: 10))
                 .foregroundStyle(.white.opacity(0.38))
         }
@@ -893,7 +903,7 @@ struct MusicModuleView: View {
                         Circle()
                             .fill(musicService.nowPlaying.isPlaying ? NPTheme.green : NPTheme.amber)
                             .frame(width: 6, height: 6)
-                        Text(musicService.nowPlaying.isPlaying ? "播放中" : "已暂停")
+                        Text(musicService.nowPlaying.isPlaying ? localizer.t("播放中") : localizer.t("已暂停"))
                             .font(.system(size: 10))
                             .foregroundStyle(NPTheme.mutedText)
                     }
@@ -938,13 +948,14 @@ struct MusicModuleView: View {
 
 struct CameraMirrorModuleView: View {
     @ObservedObject var cameraService: CameraMirrorService
+    @EnvironmentObject var localizer: Localizer
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 14) {
                 ModuleHeader(
-                    title: "镜子",
-                    subtitle: cameraService.isRunning ? "摄像头已开启" : "前置摄像头预览",
+                    title: localizer.t("镜子"),
+                    subtitle: cameraService.isRunning ? localizer.t("摄像头已开启") : localizer.t("前置摄像头预览"),
                     symbolName: "camera.fill",
                     tint: NPTheme.cyan
                 )
@@ -969,10 +980,10 @@ struct CameraMirrorModuleView: View {
             Image(systemName: "camera.fill")
                 .font(.system(size: 28))
                 .foregroundStyle(NPTheme.cyan)
-            Text("需要摄像头权限")
+            Text(localizer.t("需要摄像头权限"))
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.72))
-            Button("授权摄像头") {
+            Button(localizer.t("授权摄像头")) {
                 cameraService.requestAccess()
             }
             .buttonStyle(.borderedProminent)
@@ -987,10 +998,10 @@ struct CameraMirrorModuleView: View {
             Image(systemName: "lock.shield")
                 .font(.system(size: 24))
                 .foregroundStyle(.white.opacity(0.5))
-            Text("摄像头权限被拒绝")
+            Text(localizer.t("摄像头权限被拒绝"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.72))
-            Text("请在系统设置中授权")
+            Text(localizer.t("请在系统设置中授权"))
                 .font(.system(size: 11))
                 .foregroundStyle(NPTheme.mutedText)
         }
@@ -1003,10 +1014,10 @@ struct CameraMirrorModuleView: View {
             Image(systemName: "camera.viewfinder")
                 .font(.system(size: 36))
                 .foregroundStyle(NPTheme.cyan.opacity(0.6))
-            Text("点击开启前置摄像头")
+            Text(localizer.t("点击开启前置摄像头"))
                 .font(.system(size: 12))
                 .foregroundStyle(NPTheme.mutedText)
-            Button("开启摄像头") {
+            Button(localizer.t("开启摄像头")) {
                 cameraService.startCapture()
             }
             .buttonStyle(.borderedProminent)
@@ -1031,7 +1042,7 @@ struct CameraMirrorModuleView: View {
                 Button {
                     cameraService.stopCapture()
                 } label: {
-                    Label("关闭", systemImage: "xmark.circle")
+                    Label(localizer.t("关闭"), systemImage: "xmark.circle")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white.opacity(0.7))
                 }
@@ -1067,13 +1078,14 @@ struct CameraPreviewView: NSViewRepresentable {
 
 struct ShortcutsModuleView: View {
     @ObservedObject var shortcutsService: ShortcutsService
+    @EnvironmentObject var localizer: Localizer
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 12) {
                 ModuleHeader(
-                    title: "快捷指令",
-                    subtitle: "\(shortcutsService.shortcuts.count) 个可用",
+                    title: localizer.t("快捷指令"),
+                    subtitle: "\(shortcutsService.shortcuts.count) " + localizer.t("个可用"),
                     symbolName: "bolt.heart",
                     tint: NPTheme.amber
                 )
@@ -1100,7 +1112,7 @@ struct ShortcutsModuleView: View {
         HStack(spacing: 8) {
             ProgressView()
                 .scaleEffect(0.7)
-            Text("获取快捷指令…")
+            Text(localizer.t("获取快捷指令…"))
                 .font(.system(size: 12))
                 .foregroundStyle(NPTheme.mutedText)
         }
@@ -1113,10 +1125,10 @@ struct ShortcutsModuleView: View {
             Image(systemName: "bolt.heart")
                 .font(.system(size: 24))
                 .foregroundStyle(.white.opacity(0.3))
-            Text("未找到快捷指令")
+            Text(localizer.t("未找到快捷指令"))
                 .font(.system(size: 12))
                 .foregroundStyle(NPTheme.mutedText)
-            Button("刷新") {
+            Button(localizer.t("刷新")) {
                 shortcutsService.fetchShortcuts()
             }
             .font(.system(size: 11))
@@ -1149,7 +1161,7 @@ struct ShortcutsModuleView: View {
                         Button {
                             shortcutsService.runShortcut(shortcut)
                         } label: {
-                            Text("运行")
+                            Text(localizer.t("运行"))
                                 .font(.system(size: 10, weight: .medium))
                                 .foregroundStyle(NPTheme.amber)
                         }
@@ -1162,7 +1174,7 @@ struct ShortcutsModuleView: View {
 
             HStack {
                 Spacer()
-                Button("刷新列表") {
+                Button(localizer.t("刷新列表")) {
                     shortcutsService.fetchShortcuts()
                 }
                 .font(.system(size: 10))
@@ -1186,27 +1198,28 @@ struct ShortcutsModuleView: View {
 
 struct InlineSettingsModuleView: View {
     @ObservedObject var store: AppStore
+    @EnvironmentObject var localizer: Localizer
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 14) {
                 ModuleHeader(
-                    title: "小岛设置",
-                    subtitle: "先调最常用的几个参数",
+                    title: localizer.t("小岛设置"),
+                    subtitle: localizer.t("先调最常用的几个参数"),
                     symbolName: "gearshape",
                     tint: NPTheme.rose
                 )
-                Toggle("悬停展开", isOn: store.binding(\.expandOnHover))
-                Toggle("显示模块图标", isOn: store.binding(\.showModuleIcons))
+                Toggle(localizer.t("悬停展开"), isOn: store.binding(\.expandOnHover))
+                Toggle(localizer.t("显示模块图标"), isOn: store.binding(\.showModuleIcons))
                 HStack {
-                    Text("紧凑宽度")
+                    Text(localizer.t("紧凑宽度"))
                     Slider(value: store.binding(\.compactWidth), in: 220...420, step: 1)
                     Text("\(Int(store.settings.compactWidth))")
                         .monospacedDigit()
                         .frame(width: 42, alignment: .trailing)
                 }
                 HStack {
-                    Text("展开宽度")
+                    Text(localizer.t("展开宽度"))
                     Slider(value: store.binding(\.expandedWidth), in: 520...980, step: 1)
                     Text("\(Int(store.settings.expandedWidth))")
                         .monospacedDigit()
@@ -1308,13 +1321,14 @@ struct DashboardListPanel: View {
 struct WeatherModuleView: View {
     @ObservedObject var weatherService: WeatherService
     @ObservedObject var store: AppStore
+    @EnvironmentObject var localizer: Localizer
     @State private var showSettings = false
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 14) {
                 ModuleHeader(
-                    title: "天气",
+                    title: localizer.t("天气"),
                     subtitle: weatherService.data?.cityName ?? store.settings.weatherCity,
                     symbolName: "cloud.sun",
                     tint: NPTheme.cyan
@@ -1329,7 +1343,7 @@ struct WeatherModuleView: View {
                 } else if let error = weatherService.errorMessage {
                     errorView(error)
                 } else {
-                    Text("点击刷新获取天气")
+                    Text(localizer.t("点击刷新获取天气"))
                         .foregroundStyle(NPTheme.mutedText)
                 }
 
@@ -1345,21 +1359,21 @@ struct WeatherModuleView: View {
 
     private var apiKeyPrompt: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("需要配置 OpenWeatherMap API Key")
+            Text(localizer.t("需要配置 OpenWeatherMap API Key"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.72))
 
             HStack(spacing: 8) {
                 Image(systemName: "key.fill")
                     .foregroundStyle(NPTheme.amber)
-                Text("前往设置 → 天气配置 API Key 和城市")
+                Text(localizer.t("前往设置 → 天气配置 API Key 和城市"))
                     .font(.system(size: 12))
                     .foregroundStyle(NPTheme.mutedText)
             }
             .padding(10)
             .panelRow()
 
-            Link("免费申请 API Key →", destination: URL(string: "https://openweathermap.org/appid")!)
+            Link(localizer.t("免费申请 API Key →"), destination: URL(string: "https://openweathermap.org/appid")!)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(NPTheme.cyan)
         }
@@ -1374,7 +1388,7 @@ struct WeatherModuleView: View {
                     Text(data.description)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(.white.opacity(0.78))
-                    Text(data.feelsLikeText)
+                    Text(localizer.t("体感") + " \(Int(data.feelsLike.rounded()))°")
                         .font(.system(size: 11))
                         .foregroundStyle(NPTheme.mutedText)
                 }
@@ -1388,9 +1402,9 @@ struct WeatherModuleView: View {
             }
 
             HStack(spacing: 0) {
-                DetailChip(icon: "humidity.fill", value: data.humidityText, label: "湿度")
-                DetailChip(icon: "wind", value: data.windText, label: "风速")
-                DetailChip(icon: "clock", value: timeSince(data.fetchedAt), label: "更新")
+                DetailChip(icon: "humidity.fill", value: data.humidityText, label: localizer.t("湿度"))
+                DetailChip(icon: "wind", value: data.windText, label: localizer.t("风速"))
+                DetailChip(icon: "clock", value: timeSince(data.fetchedAt), label: localizer.t("更新"))
             }
 
             HStack {
@@ -1412,7 +1426,7 @@ struct WeatherModuleView: View {
         HStack(spacing: 8) {
             ProgressView()
                 .scaleEffect(0.7)
-            Text("获取天气中…")
+            Text(localizer.t("获取天气中…"))
                 .font(.system(size: 12))
                 .foregroundStyle(NPTheme.mutedText)
         }
@@ -1429,7 +1443,7 @@ struct WeatherModuleView: View {
                     .foregroundStyle(.white.opacity(0.72))
             }
 
-            Button("重试") {
+            Button(localizer.t("重试")) {
                 weatherService.fetch(apiKey: store.settings.weatherAPIKey, city: store.settings.weatherCity)
             }
             .font(.system(size: 12, weight: .medium))
@@ -1442,22 +1456,23 @@ struct WeatherModuleView: View {
 
     private func timeSince(_ date: Date) -> String {
         let seconds = Int(Date().timeIntervalSince(date))
-        if seconds < 60 { return "\(seconds)秒前" }
-        if seconds < 3600 { return "\(seconds / 60)分钟前" }
-        return "\(seconds / 3600)小时前"
+        if seconds < 60 { return "\(seconds)" + localizer.t("秒前") }
+        if seconds < 3600 { return "\(seconds / 60)" + localizer.t("分钟前") }
+        return "\(seconds / 3600)" + localizer.t("小时前")
     }
 }
 
 struct AIChatModuleView: View {
     @ObservedObject var chatService: AIChatService
     @ObservedObject var store: AppStore
+    @EnvironmentObject var localizer: Localizer
     @State private var inputText = ""
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 12) {
                 ModuleHeader(
-                    title: "AI 对话",
+                    title: localizer.t("AI 对话"),
                     subtitle: store.settings.aiModelName,
                     symbolName: "sparkles",
                     tint: NPTheme.rose
@@ -1476,13 +1491,13 @@ struct AIChatModuleView: View {
 
     private var apiKeyPrompt: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("需要配置 AI API Key")
+            Text(localizer.t("需要配置 AI API Key"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.72))
             HStack(spacing: 8) {
                 Image(systemName: "key.fill")
                     .foregroundStyle(NPTheme.amber)
-                Text("前往设置 → AI 配置 API Key 和模型")
+                Text(localizer.t("前往设置 → AI 配置 API Key 和模型"))
                     .font(.system(size: 12))
                     .foregroundStyle(NPTheme.mutedText)
             }
@@ -1505,7 +1520,7 @@ struct AIChatModuleView: View {
                             HStack(spacing: 6) {
                                 ProgressView()
                                     .scaleEffect(0.6)
-                                Text("思考中…")
+                                Text(localizer.t("思考中…"))
                                     .font(.system(size: 11))
                                     .foregroundStyle(NPTheme.mutedText)
                             }
@@ -1531,7 +1546,7 @@ struct AIChatModuleView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.6))
                     Spacer()
-                    Button("清除") { chatService.errorMessage = nil }
+                    Button(localizer.t("清除")) { chatService.errorMessage = nil }
                         .font(.system(size: 11))
                         .foregroundStyle(NPTheme.cyan)
                         .buttonStyle(.plain)
@@ -1539,7 +1554,7 @@ struct AIChatModuleView: View {
             }
 
             HStack(spacing: 8) {
-                TextField("输入消息…", text: $inputText)
+                TextField(localizer.t("输入消息…"), text: $inputText)
                     .textFieldStyle(.plain)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 7)
@@ -1586,7 +1601,7 @@ struct AIChatModuleView: View {
                         .foregroundStyle(NPTheme.mutedText)
                 }
                 Spacer()
-                Button("清空对话") { chatService.clearHistory() }
+                Button(localizer.t("清空对话")) { chatService.clearHistory() }
                     .font(.system(size: 10))
                     .foregroundStyle(.white.opacity(0.4))
                     .buttonStyle(.plain)

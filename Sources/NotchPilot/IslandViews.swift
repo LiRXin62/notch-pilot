@@ -4,6 +4,7 @@ import SwiftUI
 struct IslandRootView: View {
     @ObservedObject var store: AppStore
     @ObservedObject var runtimeState: IslandRuntimeState
+    @ObservedObject var localizer: Localizer
     let notificationService: NotificationService
     let onExpand: () -> Void
     let onCollapse: () -> Void
@@ -25,6 +26,7 @@ struct IslandRootView: View {
         store: AppStore,
         runtimeState: IslandRuntimeState,
         notificationService: NotificationService,
+        localizer: Localizer,
         onExpand: @escaping () -> Void,
         onCollapse: @escaping () -> Void,
         onScheduleCollapse: @escaping () -> Void,
@@ -33,6 +35,7 @@ struct IslandRootView: View {
         self.store = store
         self.runtimeState = runtimeState
         self.notificationService = notificationService
+        self.localizer = localizer
         self.onExpand = onExpand
         self.onCollapse = onCollapse
         self.onScheduleCollapse = onScheduleCollapse
@@ -54,17 +57,25 @@ struct IslandRootView: View {
                     musicService: musicService,
                     cameraService: cameraService,
                     shortcutsService: shortcutsService,
+                    localizer: localizer,
                     now: now,
                     onCollapse: onCollapse,
                     onShowSettings: onShowSettings
                 )
             } else {
-                CompactIslandView(store: store, timerModel: timerModel, now: now)
+                CompactIslandView(store: store, timerModel: timerModel, localizer: localizer, now: now)
             }
         }
+        .environmentObject(localizer)
         .contentTransition(.opacity)
         .animation(.spring(response: 0.28, dampingFraction: 0.92), value: runtimeState.isExpanded)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear {
+            localizer.language = Language(rawValue: store.settings.languageRaw) ?? .system
+        }
+        .onChange(of: store.settings.languageRaw) { newValue in
+            localizer.language = Language(rawValue: newValue) ?? .system
+        }
         .onHover { hovering in
             isHovering = hovering
             if hovering, store.settings.expandOnHover {
@@ -160,6 +171,7 @@ struct IslandBackground: View {
 struct CompactIslandView: View {
     @ObservedObject var store: AppStore
     @ObservedObject var timerModel: PomodoroModel
+    @ObservedObject var localizer: Localizer
     let now: Date
 
     var body: some View {
@@ -196,6 +208,7 @@ struct ExpandedIslandView: View {
     @ObservedObject var musicService: MusicService
     @ObservedObject var cameraService: CameraMirrorService
     @ObservedObject var shortcutsService: ShortcutsService
+    @ObservedObject var localizer: Localizer
     let now: Date
     let onCollapse: () -> Void
     let onShowSettings: () -> Void
@@ -230,31 +243,31 @@ struct ExpandedIslandView: View {
                 symbolName: "timer",
                 text: timerModel.compactLabel,
                 tint: NPTheme.amber,
-                help: "打开专注计时"
+                help: localizer.t("打开专注计时")
             ) {
                 store.setActiveModule(.timer)
             }
             StatusChipButton(
                 symbolName: "checklist",
-                text: "\(store.todos.filter { !$0.isCompleted }.count) 待办",
+                text: "\(store.todos.filter { !$0.isCompleted }.count) " + localizer.t("待办"),
                 tint: NPTheme.green,
-                help: "打开待办"
+                help: localizer.t("打开待办")
             ) {
                 store.setActiveModule(.todos)
             }
             StatusChipButton(
                 symbolName: "folder",
-                text: "\(store.shelfItems.count) 文件",
+                text: "\(store.shelfItems.count) " + localizer.t("文件"),
                 tint: NPTheme.cyan,
-                help: "打开文件暂存"
+                help: localizer.t("打开文件暂存")
             ) {
                 store.setActiveModule(.files)
             }
 
             Spacer()
 
-            GhostIconButton(symbolName: "gearshape", help: "设置", action: onShowSettings)
-            GhostIconButton(symbolName: "chevron.up", help: "收起", action: onCollapse)
+            GhostIconButton(symbolName: "gearshape", help: localizer.t("设置"), action: onShowSettings)
+            GhostIconButton(symbolName: "chevron.up", help: localizer.t("收起"), action: onCollapse)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 7)

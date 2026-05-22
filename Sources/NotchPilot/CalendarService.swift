@@ -54,7 +54,7 @@ final class CalendarService: ObservableObject {
                 if granted {
                     self?.fetchEvents()
                 } else {
-                    self?.errorMessage = error?.localizedDescription ?? "日历权限被拒绝，请在系统设置中授权"
+                    self?.errorMessage = error?.localizedDescription ?? Localizer.shared.t("日历权限被拒绝，请在系统设置中授权")
                 }
             }
         }
@@ -70,7 +70,7 @@ final class CalendarService: ObservableObject {
 
     func fetchEvents() {
         guard authorizationStatus == .fullAccess else {
-            errorMessage = "需要日历权限"
+            errorMessage = Localizer.shared.t("需要日历权限")
             return
         }
 
@@ -84,7 +84,7 @@ final class CalendarService: ObservableObject {
         events = ekEvents.map { event in
             CalendarEventItem(
                 id: event.eventIdentifier,
-                title: event.title ?? "(无标题)",
+                title: event.title ?? Localizer.shared.t("(无标题)"),
                 startDate: event.startDate,
                 endDate: event.endDate,
                 isAllDay: event.isAllDay,
@@ -115,7 +115,7 @@ final class CalendarService: ObservableObject {
                 self?.reminders = (ekReminders ?? []).map { reminder in
                     ReminderItem(
                         id: reminder.calendarItemIdentifier,
-                        title: reminder.title ?? "(无标题)",
+                        title: reminder.title ?? Localizer.shared.t("(无标题)"),
                         isCompleted: reminder.isCompleted,
                         dueDate: reminder.dueDateComponents?.date,
                         calendarTitle: reminder.calendar.title
@@ -131,7 +131,7 @@ final class CalendarService: ObservableObject {
 
     func addReminder(title: String) {
         guard authorizationStatus == .fullAccess else {
-            errorMessage = "需要提醒事项权限"
+            errorMessage = Localizer.shared.t("需要提醒事项权限")
             return
         }
 
@@ -143,7 +143,7 @@ final class CalendarService: ObservableObject {
             try eventStore.save(reminder, commit: true)
             fetchReminders()
         } catch {
-            errorMessage = "添加提醒失败: \(error.localizedDescription)"
+            errorMessage = Localizer.shared.t("添加提醒失败") + ": \(error.localizedDescription)"
         }
     }
 
@@ -154,7 +154,7 @@ final class CalendarService: ObservableObject {
             try eventStore.save(ekReminder, commit: true)
             fetchReminders()
         } catch {
-            errorMessage = "更新提醒失败: \(error.localizedDescription)"
+            errorMessage = Localizer.shared.t("更新提醒失败") + ": \(error.localizedDescription)"
         }
     }
 
@@ -164,7 +164,7 @@ final class CalendarService: ObservableObject {
             try eventStore.remove(ekReminder, commit: true)
             fetchReminders()
         } catch {
-            errorMessage = "删除提醒失败: \(error.localizedDescription)"
+            errorMessage = Localizer.shared.t("删除提醒失败") + ": \(error.localizedDescription)"
         }
     }
 }

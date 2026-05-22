@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var store: AppStore
+    @EnvironmentObject var localizer: Localizer
 
     var body: some View {
         ScrollView {
@@ -17,29 +18,41 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Notch Pilot")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
-                        Text("顶部效率岛设置")
+                        Text(localizer.t("顶部效率岛设置"))
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
                 }
 
-                settingsSection("通用") {
-                    Toggle("悬停展开", isOn: store.binding(\.expandOnHover))
-                    Toggle("所有显示器显示", isOn: store.binding(\.showOnAllDisplays))
-                    Toggle("全屏应用时隐藏", isOn: store.binding(\.hideInFullscreen))
-                    Toggle("显示模块图标", isOn: store.binding(\.showModuleIcons))
+                settingsSection(localizer.t("通用")) {
+                    Toggle(localizer.t("悬停展开"), isOn: store.binding(\.expandOnHover))
+                    Toggle(localizer.t("所有显示器显示"), isOn: store.binding(\.showOnAllDisplays))
+                    Toggle(localizer.t("全屏应用时隐藏"), isOn: store.binding(\.hideInFullscreen))
+                    Toggle(localizer.t("显示模块图标"), isOn: store.binding(\.showModuleIcons))
+
+                    HStack {
+                        Text(localizer.t("语言"))
+                            .frame(width: 130, alignment: .leading)
+                        Picker("", selection: languageBinding) {
+                            ForEach(Language.allCases) { lang in
+                                Text(lang.displayName).tag(lang)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                    }
                 }
 
-                settingsSection("尺寸") {
-                    sliderRow("紧凑宽度", value: store.binding(\.compactWidth), range: 220...420)
-                    sliderRow("紧凑高度", value: store.binding(\.compactHeight), range: 34...60)
-                    sliderRow("展开宽度", value: store.binding(\.expandedWidth), range: 520...980)
-                    sliderRow("展开高度", value: store.binding(\.expandedHeight), range: 360...720)
-                    sliderRow("悬停延迟", value: store.binding(\.hoverDelay), range: 0.05...0.8, valueText: "\(String(format: "%.2f", store.settings.hoverDelay))s")
+                settingsSection(localizer.t("尺寸")) {
+                    sliderRow(localizer.t("紧凑宽度"), value: store.binding(\.compactWidth), range: 220...420)
+                    sliderRow(localizer.t("紧凑高度"), value: store.binding(\.compactHeight), range: 34...60)
+                    sliderRow(localizer.t("展开宽度"), value: store.binding(\.expandedWidth), range: 520...980)
+                    sliderRow(localizer.t("展开高度"), value: store.binding(\.expandedHeight), range: 360...720)
+                    sliderRow(localizer.t("悬停延迟"), value: store.binding(\.hoverDelay), range: 0.05...0.8, valueText: "\(String(format: "%.2f", store.settings.hoverDelay))s")
                 }
 
-                settingsSection("模块") {
-                    Picker("默认模块", selection: store.binding(\.activeModuleRawValue)) {
+                settingsSection(localizer.t("模块")) {
+                    Picker(localizer.t("默认模块"), selection: store.binding(\.activeModuleRawValue)) {
                         ForEach(IslandModuleKind.allCases) { module in
                             Text(module.title).tag(module.rawValue)
                         }
@@ -66,12 +79,12 @@ struct SettingsView: View {
                     }
                 }
 
-                settingsSection("番茄钟") {
-                    Stepper("专注 \(store.settings.pomodoroFocusMinutes)m", value: store.binding(\.pomodoroFocusMinutes), in: 1...180)
-                    Stepper("休息 \(store.settings.pomodoroBreakMinutes)m", value: store.binding(\.pomodoroBreakMinutes), in: 1...60)
+                settingsSection(localizer.t("番茄钟")) {
+                    Stepper(localizer.t("专注") + " \(store.settings.pomodoroFocusMinutes)m", value: store.binding(\.pomodoroFocusMinutes), in: 1...180)
+                    Stepper(localizer.t("休息") + " \(store.settings.pomodoroBreakMinutes)m", value: store.binding(\.pomodoroBreakMinutes), in: 1...60)
                 }
 
-                settingsSection("天气") {
+                settingsSection(localizer.t("天气")) {
                     HStack {
                         Text("API Key")
                             .frame(width: 80, alignment: .leading)
@@ -79,18 +92,18 @@ struct SettingsView: View {
                             .textFieldStyle(.roundedBorder)
                     }
                     HStack {
-                        Text("城市")
+                        Text(localizer.t("城市"))
                             .frame(width: 80, alignment: .leading)
                         TextField("Beijing", text: store.binding(\.weatherCity))
                             .textFieldStyle(.roundedBorder)
                     }
-                    Stepper("刷新间隔 \(store.settings.weatherRefreshMinutes) 分钟", value: store.binding(\.weatherRefreshMinutes), in: 5...120)
-                    Link("免费申请 OpenWeatherMap API Key →", destination: URL(string: "https://openweathermap.org/appid")!)
+                    Stepper(localizer.t("刷新间隔") + " \(store.settings.weatherRefreshMinutes) " + localizer.t("分钟"), value: store.binding(\.weatherRefreshMinutes), in: 5...120)
+                    Link(localizer.t("免费申请 OpenWeatherMap API Key →"), destination: URL(string: "https://openweathermap.org/appid")!)
                         .font(.system(size: 11))
                         .foregroundStyle(NPTheme.cyan)
                 }
 
-                settingsSection("AI 对话") {
+                settingsSection(localizer.t("AI 对话")) {
                     HStack {
                         Text("API Key")
                             .frame(width: 80, alignment: .leading)
@@ -98,31 +111,31 @@ struct SettingsView: View {
                             .textFieldStyle(.roundedBorder)
                     }
                     HStack {
-                        Text("接口地址")
+                        Text(localizer.t("接口地址"))
                             .frame(width: 80, alignment: .leading)
                         TextField("https://api.openai.com/v1", text: store.binding(\.aiBaseURL))
                             .textFieldStyle(.roundedBorder)
                     }
                     HStack {
-                        Text("模型")
+                        Text(localizer.t("模型"))
                             .frame(width: 80, alignment: .leading)
                         TextField("gpt-3.5-turbo", text: store.binding(\.aiModelName))
                             .textFieldStyle(.roundedBorder)
                     }
-                    Text("支持 OpenAI 兼容接口（OpenAI、DeepSeek、Moonshot 等）")
+                    Text(localizer.t("支持 OpenAI 兼容接口（OpenAI、DeepSeek、Moonshot 等）"))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
 
-                settingsSection("系统") {
-                    Toggle("开机启动", isOn: store.binding(\.launchAtLogin))
+                settingsSection(localizer.t("系统")) {
+                    Toggle(localizer.t("开机启动"), isOn: store.binding(\.launchAtLogin))
                 }
 
-                settingsSection("数据") {
+                settingsSection(localizer.t("数据")) {
                     HStack {
-                        Button("导出 JSON") { exportData() }
-                        Button("导入 JSON") { importData() }
-                        Button("重置") { confirmReset() }
+                        Button(localizer.t("导出 JSON")) { exportData() }
+                        Button(localizer.t("导入 JSON")) { importData() }
+                        Button(localizer.t("重置")) { confirmReset() }
                             .foregroundStyle(.red)
                     }
                 }
@@ -146,6 +159,16 @@ struct SettingsView: View {
                 .stroke(Color.primary.opacity(0.07), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var languageBinding: Binding<Language> {
+        Binding(
+            get: { Language(rawValue: store.settings.languageRaw) ?? .system },
+            set: { newValue in
+                store.updateSettings { $0.languageRaw = newValue.rawValue }
+                localizer.language = newValue
+            }
+        )
     }
 
     private func sliderRow(_ title: String, value: Binding<Double>, range: ClosedRange<Double>, valueText: String? = nil) -> some View {
@@ -188,11 +211,11 @@ struct SettingsView: View {
 
     private func confirmReset() {
         let alert = NSAlert()
-        alert.messageText = "重置 Notch Pilot?"
-        alert.informativeText = "这会清空本地待办、速记、启动项、文件暂存和设置。"
+        alert.messageText = localizer.t("重置 Notch Pilot?")
+        alert.informativeText = localizer.t("这会清空本地待办、速记、启动项、文件暂存和设置。")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "重置")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: localizer.t("重置"))
+        alert.addButton(withTitle: localizer.t("取消"))
         if alert.runModal() == .alertFirstButtonReturn {
             store.reset()
         }

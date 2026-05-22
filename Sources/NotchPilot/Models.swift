@@ -98,6 +98,7 @@ struct AppSettings: Codable, Equatable {
     var aiBaseURL: String = "https://api.openai.com/v1"
     var aiModelName: String = "gpt-3.5-turbo"
     var launchAtLogin: Bool = false
+    var languageRaw: String = Language.system.rawValue
 }
 
 struct TodoItem: Identifiable, Codable, Equatable {

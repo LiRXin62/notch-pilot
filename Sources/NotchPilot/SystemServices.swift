@@ -45,7 +45,7 @@ final class NotificationService {
 @MainActor
 final class NetworkMonitor: ObservableObject {
     @Published var isConnected = false
-    @Published var connectionType = "未知"
+    @Published var connectionType = Localizer.shared.t("未知")
 
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "NetworkMonitor")
@@ -57,13 +57,13 @@ final class NetworkMonitor: ObservableObject {
                 if path.usesInterfaceType(.wifi) {
                     self?.connectionType = "WiFi"
                 } else if path.usesInterfaceType(.cellular) {
-                    self?.connectionType = "蜂窝"
+                    self?.connectionType = Localizer.shared.t("蜂窝")
                 } else if path.usesInterfaceType(.wiredEthernet) {
-                    self?.connectionType = "有线"
+                    self?.connectionType = Localizer.shared.t("有线")
                 } else if path.status == .satisfied {
-                    self?.connectionType = "已连接"
+                    self?.connectionType = Localizer.shared.t("已连接")
                 } else {
-                    self?.connectionType = "未连接"
+                    self?.connectionType = Localizer.shared.t("未连接")
                 }
             }
         }
@@ -89,7 +89,7 @@ enum SystemSampler {
             batteryText: batteryText(),
             cpuText: cpuText(),
             memoryText: memoryText(),
-            networkText: networkMonitor.isConnected ? "\(networkMonitor.connectionType) 已连接" : "未连接"
+            networkText: networkMonitor.isConnected ? "\(networkMonitor.connectionType) " + Localizer.shared.t("已连接") : Localizer.shared.t("未连接")
         )
     }
 
@@ -160,7 +160,7 @@ final class WeatherService: ObservableObject {
 
     func fetch(apiKey: String, city: String) {
         guard !apiKey.isEmpty else {
-            errorMessage = "请先在设置中配置 API Key"
+            errorMessage = Localizer.shared.t("请先在设置中配置 API Key")
             return
         }
         refreshTask?.cancel()
@@ -189,7 +189,7 @@ final class WeatherService: ObservableObject {
         guard let url = components.url else {
             await MainActor.run {
                 self.isLoading = false
-                self.errorMessage = "URL 构造失败"
+                self.errorMessage = Localizer.shared.t("URL 构造失败")
             }
             return
         }
@@ -202,7 +202,7 @@ final class WeatherService: ObservableObject {
             guard statusCode == 200 else {
                 await MainActor.run {
                     self.isLoading = false
-                    self.errorMessage = statusCode == 401 ? "API Key 无效" : "请求失败 (\(statusCode))"
+                    self.errorMessage = statusCode == 401 ? Localizer.shared.t("API Key 无效") : Localizer.shared.t("请求失败") + " (\(statusCode))"
                 }
                 return
             }

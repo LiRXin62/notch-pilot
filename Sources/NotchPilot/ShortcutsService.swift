@@ -42,7 +42,7 @@ final class ShortcutsService: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    self.errorMessage = "获取快捷指令失败: \(error.localizedDescription)"
+                    self.errorMessage = Localizer.shared.t("获取快捷指令失败") + ": \(error.localizedDescription)"
                     self.isLoading = false
                 }
             }
@@ -65,13 +65,13 @@ final class ShortcutsService: ObservableObject {
                 await MainActor.run {
                     self.shortcuts[index].isRunning = false
                     if process.terminationStatus != 0 {
-                        self.errorMessage = "执行 \(shortcut.name) 失败"
+                        self.errorMessage = Localizer.shared.t("执行失败") + " \(shortcut.name)"
                     }
                 }
             } catch {
                 await MainActor.run {
                     self.shortcuts[index].isRunning = false
-                    self.errorMessage = "执行失败: \(error.localizedDescription)"
+                    self.errorMessage = Localizer.shared.t("执行失败") + ": \(error.localizedDescription)"
                 }
             }
         }

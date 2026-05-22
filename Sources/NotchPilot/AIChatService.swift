@@ -19,7 +19,7 @@ final class AIChatService: ObservableObject {
     func send(_ text: String, settings: AppSettings) {
         let apiKey = KeychainHelper.load(key: "aiAPIKey") ?? settings.aiAPIKey
         guard !apiKey.isEmpty else {
-            errorMessage = "请先在设置中配置 API Key"
+            errorMessage = Localizer.shared.t("请先在设置中配置 API Key")
             return
         }
 
@@ -51,7 +51,7 @@ final class AIChatService: ObservableObject {
         guard let url = URL(string: "\(baseURL)/chat/completions") else {
             await MainActor.run {
                 self.isLoading = false
-                self.errorMessage = "URL 无效"
+                self.errorMessage = Localizer.shared.t("URL 无效")
             }
             return
         }
@@ -72,7 +72,7 @@ final class AIChatService: ObservableObject {
         } catch {
             await MainActor.run {
                 self.isLoading = false
-                self.errorMessage = "请求构造失败"
+                self.errorMessage = Localizer.shared.t("请求构造失败")
             }
             return
         }
@@ -85,7 +85,7 @@ final class AIChatService: ObservableObject {
             guard statusCode == 200 else {
                 await MainActor.run {
                     self.isLoading = false
-                    self.errorMessage = statusCode == 401 ? "API Key 无效" : "请求失败 (\(statusCode))"
+                    self.errorMessage = statusCode == 401 ? Localizer.shared.t("API Key 无效") : Localizer.shared.t("请求失败") + " (\(statusCode))"
                 }
                 return
             }

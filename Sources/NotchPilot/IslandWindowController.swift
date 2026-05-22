@@ -22,6 +22,7 @@ final class IslandPanel: NSPanel {
 final class IslandWindowController: NSObject {
     private let store: AppStore
     private let notificationService: NotificationService
+    private let localizer: Localizer
     private let onShowSettings: () -> Void
     private var windows: [NSPanel] = []
     private let runtimeState = IslandRuntimeState()
@@ -32,10 +33,12 @@ final class IslandWindowController: NSObject {
     init(
         store: AppStore,
         notificationService: NotificationService,
+        localizer: Localizer,
         onShowSettings: @escaping () -> Void
     ) {
         self.store = store
         self.notificationService = notificationService
+        self.localizer = localizer
         self.onShowSettings = onShowSettings
         super.init()
         createWindows()
@@ -131,6 +134,7 @@ final class IslandWindowController: NSObject {
             store: store,
             runtimeState: runtimeState,
             notificationService: notificationService,
+            localizer: localizer,
             onExpand: { [weak self] in self?.expand() },
             onCollapse: { [weak self] in self?.collapse() },
             onScheduleCollapse: { [weak self] in self?.scheduleCollapse() },

@@ -8,14 +8,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = AppStore.load()
     private let notificationService = NotificationService()
     private let hotkeyMonitor = HotkeyMonitor()
+    private let localizer = Localizer.shared
     private var statusItem: NSStatusItem?
     private var islandController: IslandWindowController?
     private var settingsController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        localizer.language = Language(rawValue: store.settings.languageRaw) ?? .system
+
         let islandController = IslandWindowController(
             store: store,
             notificationService: notificationService,
+            localizer: localizer,
             onShowSettings: { [weak self] in self?.showSettings() }
         )
         self.islandController = islandController
@@ -146,7 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showSettings() {
         if settingsController == nil {
-            settingsController = SettingsWindowController(store: store)
+            settingsController = SettingsWindowController(store: store, localizer: localizer)
         }
         settingsController?.show()
     }
@@ -189,8 +193,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 final class SettingsWindowController {
     private let window: NSWindow
 
-    init(store: AppStore) {
-        let root = SettingsView(store: store)
+    init(store: AppStore, localizer: Localizer) {
+        let root = SettingsView(store: store).environmentObject(localizer)
         window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 720, height: 560),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
