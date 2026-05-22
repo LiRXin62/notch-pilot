@@ -93,6 +93,9 @@ final class Localizer: ObservableObject {
         "专注计时": "Pomodoro Timer",
         "一个小而安静的番茄钟": "A small and quiet pomodoro",
         "休息": "Break",
+        "完成": "complete",
+        "休息一下吧。": "Take a short break.",
+        "准备下一轮专注。": "Ready for another focus round.",
 
         // MARK: - Launcher
         "常用 App 放在顶部": "Pin frequently used apps",
@@ -183,6 +186,7 @@ final class Localizer: ObservableObject {
         "请在系统设置中授权": "Please enable in System Settings",
         "点击开启前置摄像头": "Tap to open front camera",
         "开启摄像头": "Open Camera",
+        "未检测到前置摄像头": "No front camera detected",
 
         // MARK: - Shortcuts
         "个可用": "available",

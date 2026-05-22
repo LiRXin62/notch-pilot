@@ -6,6 +6,7 @@ import Foundation
 final class CameraMirrorService: ObservableObject {
     @Published var isRunning = false
     @Published var authorizationStatus: AVAuthorizationStatus = .notDetermined
+    @Published var errorMessage: String?
 
     private var captureSession: AVCaptureSession?
     private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
@@ -31,14 +32,23 @@ final class CameraMirrorService: ObservableObject {
             return
         }
 
+        errorMessage = nil
         let session = AVCaptureSession()
         session.sessionPreset = .medium
 
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
-              let input = try? AVCaptureDeviceInput(device: device) else { return }
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
+            errorMessage = Localizer.shared.t("未检测到前置摄像头")
+            return
+        }
 
-        if session.canAddInput(input) {
-            session.addInput(input)
+        do {
+            let input = try AVCaptureDeviceInput(device: device)
+            if session.canAddInput(input) {
+                session.addInput(input)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            return
         }
 
         captureSession = session

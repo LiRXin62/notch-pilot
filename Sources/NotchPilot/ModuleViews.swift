@@ -973,6 +973,17 @@ struct CameraMirrorModuleView: View {
                     startView
                 }
 
+                if let error = cameraService.errorMessage {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(NPTheme.amber)
+                        Text(error)
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
+                }
+
                 Spacer(minLength: 0)
             }
         }

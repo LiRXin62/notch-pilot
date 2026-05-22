@@ -66,9 +66,10 @@ final class PomodoroModel: ObservableObject {
 
     private func completeCurrentPhase() {
         isRunning = false
+        let localizer = Localizer.shared
         notificationService.notify(
-            title: "\(phase.title) complete",
-            body: phase == .focus ? "Take a short break." : "Ready for another focus round."
+            title: localizer.t(phase.title) + " " + localizer.t("完成"),
+            body: phase == .focus ? localizer.t("休息一下吧。") : localizer.t("准备下一轮专注。")
         )
         phase = phase == .focus ? .breakTime : .focus
         remainingSeconds = totalSeconds(for: phase)
