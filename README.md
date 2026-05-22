@@ -65,17 +65,23 @@ NOTCH_PILOT_RENDER_PREVIEW=1 swift run
 - 快捷启动 App 添加、启动、删除。
 - 文件暂存拖入、拖出、Finder 中显示、清空。
 - 速记保存、删除、转 Todo。
-- 系统状态初版：电池、CPU、内存、网络占位。
-- 剪贴板初版：读取当前文本。
+- 系统状态：电池、CPU、内存、实时网络监控（NWPathMonitor）。
+- 剪贴板历史：后台监听、敏感内容过滤、搜索、置顶、复制。
 - 天气模块：接入 OpenWeatherMap API，用户自配 API Key 和城市，展示温度、天气、湿度、风速。
-- 设置页：模块开关、排序、尺寸、番茄钟时长、天气配置、导入导出、重置。
+- AI 对话模块：接入 OpenAI 兼容接口，支持流式输出，API Key 存 Keychain。
+- 日历/提醒事项：EventKit 集成，显示今日日程，添加/完成/删除提醒。
+- 音乐控制：检测 Apple Music/Spotify 播放状态，播放/暂停/上一首/下一首。
+- 摄像头镜子：前置摄像头预览。
+- 快捷指令：显示系统快捷指令列表，一键运行。
+- 多显示器支持：可选在所有显示器显示独立小岛。
+- 开机启动：SMAppService Login Item。
+- 设置页：模块开关、排序、尺寸、番茄钟时长、天气配置、AI 配置、导入导出、重置。
 - 离屏 UI 预览渲染器，方便持续检查界面效果。
 
 ## 下一步优先级
 
 - 打成真正 `.app` bundle，补 Info.plist、图标、签名配置。
 - 修正文件暂存为 security-scoped bookmark。
-- 日历/提醒事项 EventKit 集成。
-- 剪贴板历史后台监听和敏感过滤。
-- AI OpenAI-compatible 配置和 Keychain。
-- 音乐信息、歌词、Quick Look、AirDrop。
+- 歌词显示功能。
+- Quick Look 和 AirDrop。
+- 插件系统。

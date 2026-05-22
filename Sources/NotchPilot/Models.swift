@@ -12,6 +12,9 @@ enum IslandModuleKind: String, Codable, CaseIterable, Identifiable {
     case clipboard
     case weather
     case ai
+    case music
+    case camera
+    case shortcuts
     case settings
 
     var id: String { rawValue }
@@ -45,6 +48,9 @@ enum IslandModuleKind: String, Codable, CaseIterable, Identifiable {
         case .clipboard: return "剪贴板"
         case .weather: return "天气"
         case .ai: return "AI"
+        case .music: return "音乐"
+        case .camera: return "镜子"
+        case .shortcuts: return "快捷指令"
         case .settings: return "设置"
         }
     }
@@ -62,6 +68,9 @@ enum IslandModuleKind: String, Codable, CaseIterable, Identifiable {
         case .clipboard: return "doc.on.clipboard"
         case .weather: return "cloud.sun"
         case .ai: return "sparkles"
+        case .music: return "music.note"
+        case .camera: return "camera.fill"
+        case .shortcuts: return "bolt.heart"
         case .settings: return "gearshape"
         }
     }
@@ -85,6 +94,10 @@ struct AppSettings: Codable, Equatable {
     var weatherAPIKey: String = ""
     var weatherCity: String = "Beijing"
     var weatherRefreshMinutes: Int = 30
+    var aiAPIKey: String = ""
+    var aiBaseURL: String = "https://api.openai.com/v1"
+    var aiModelName: String = "gpt-3.5-turbo"
+    var launchAtLogin: Bool = false
 }
 
 struct TodoItem: Identifiable, Codable, Equatable {

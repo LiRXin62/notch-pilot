@@ -23,7 +23,7 @@ final class IslandWindowController: NSObject {
     private let store: AppStore
     private let notificationService: NotificationService
     private let onShowSettings: () -> Void
-    private let window: NSPanel
+    private var windows: [NSPanel] = []
     private let runtimeState = IslandRuntimeState()
     private var cancellables = Set<AnyCancellable>()
     private var state: IslandPresentationState = .compact
@@ -37,15 +37,8 @@ final class IslandWindowController: NSObject {
         self.store = store
         self.notificationService = notificationService
         self.onShowSettings = onShowSettings
-        window = IslandPanel(
-            contentRect: .zero,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
         super.init()
-        configureWindow()
-        configureContent()
+        createWindows()
         observeSettings()
         observeScreenChanges()
     }
@@ -55,8 +48,10 @@ final class IslandWindowController: NSObject {
         withAnimation(.spring(response: 0.28, dampingFraction: 0.92)) {
             runtimeState.isExpanded = false
         }
-        resizeForCurrentState(animated: false)
-        window.orderFrontRegardless()
+        resizeAllWindows(animated: false)
+        for window in windows {
+            window.orderFrontRegardless()
+        }
     }
 
     func toggleExpanded() {
@@ -74,8 +69,10 @@ final class IslandWindowController: NSObject {
         withAnimation(.spring(response: 0.28, dampingFraction: 0.92)) {
             runtimeState.isExpanded = true
         }
-        resizeForCurrentState(animated: true)
-        window.orderFrontRegardless()
+        resizeAllWindows(animated: true)
+        for window in windows {
+            window.orderFrontRegardless()
+        }
     }
 
     func collapse() {
@@ -84,7 +81,7 @@ final class IslandWindowController: NSObject {
         withAnimation(.spring(response: 0.24, dampingFraction: 0.96)) {
             runtimeState.isExpanded = false
         }
-        resizeForCurrentState(animated: true)
+        resizeAllWindows(animated: true)
     }
 
     func scheduleCollapse() {
@@ -97,7 +94,24 @@ final class IslandWindowController: NSObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: task)
     }
 
-    private func configureWindow() {
+    private func createWindows() {
+        let screens = store.settings.showOnAllDisplays ? NSScreen.screens : [NSScreen.main].compactMap { $0 }
+        windows.removeAll()
+
+        for screen in screens {
+            let window = IslandPanel(
+                contentRect: .zero,
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            configureWindow(window, for: screen)
+            configureContent(window)
+            windows.append(window)
+        }
+    }
+
+    private func configureWindow(_ window: NSPanel, for screen: NSScreen) {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = true
@@ -112,7 +126,7 @@ final class IslandWindowController: NSObject {
         window.titlebarAppearsTransparent = true
     }
 
-    private func configureContent() {
+    private func configureContent(_ window: NSPanel) {
         let rootView = IslandRootView(
             store: store,
             runtimeState: runtimeState,
@@ -130,10 +144,26 @@ final class IslandWindowController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
-                    self?.resizeForCurrentState(animated: false)
+                    self?.handleSettingsChange()
                 }
             }
             .store(in: &cancellables)
+    }
+
+    private func handleSettingsChange() {
+        let shouldShowOnAll = store.settings.showOnAllDisplays
+        let currentCount = windows.count
+        let expectedCount = shouldShowOnAll ? NSScreen.screens.count : 1
+
+        if currentCount != expectedCount {
+            for window in windows {
+                window.close()
+            }
+            createWindows()
+            showCompact()
+        } else {
+            resizeAllWindows(animated: false)
+        }
     }
 
     private func observeScreenChanges() {
@@ -146,31 +176,48 @@ final class IslandWindowController: NSObject {
     }
 
     @objc private func screenParametersChanged() {
-        resizeForCurrentState(animated: false)
+        let screens = store.settings.showOnAllDisplays ? NSScreen.screens : [NSScreen.main].compactMap { $0 }
+
+        if windows.count != screens.count {
+            for window in windows {
+                window.close()
+            }
+            createWindows()
+            showCompact()
+        } else {
+            resizeAllWindows(animated: false)
+        }
     }
 
-    private func resizeForCurrentState(animated: Bool) {
-        let frame = IslandPositioner.frame(for: state, settings: store.settings)
-        guard animated else {
-            window.setFrame(frame, display: true)
-            return
-        }
+    private func resizeAllWindows(animated: Bool) {
+        let screens = store.settings.showOnAllDisplays ? NSScreen.screens : [NSScreen.main].compactMap { $0 }
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = state == .expanded ? 0.30 : 0.22
-            context.allowsImplicitAnimation = true
-            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.18, 0.82, 0.18, 1.0)
-            window.animator().setFrame(frame, display: true)
+        for (index, screen) in screens.enumerated() {
+            guard index < windows.count else { break }
+            let frame = IslandPositioner.frame(for: state, settings: store.settings, screen: screen)
+            let window = windows[index]
+
+            guard animated else {
+                window.setFrame(frame, display: true)
+                continue
+            }
+
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = state == .expanded ? 0.30 : 0.22
+                context.allowsImplicitAnimation = true
+                context.timingFunction = CAMediaTimingFunction(controlPoints: 0.18, 0.82, 0.18, 1.0)
+                window.animator().setFrame(frame, display: true)
+            }
         }
     }
 }
 
 @MainActor
 enum IslandPositioner {
-    static func frame(for state: IslandPresentationState, settings: AppSettings) -> NSRect {
-        let screen = NSScreen.main ?? NSScreen.screens.first
-        let screenFrame = screen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let safeInsets = screen?.safeAreaInsets ?? NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+    static func frame(for state: IslandPresentationState, settings: AppSettings, screen: NSScreen? = nil) -> NSRect {
+        let targetScreen = screen ?? NSScreen.main ?? NSScreen.screens.first
+        let screenFrame = targetScreen?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let safeInsets = targetScreen?.safeAreaInsets ?? NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
 
         let width: CGFloat
         let height: CGFloat

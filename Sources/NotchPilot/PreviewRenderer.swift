@@ -14,6 +14,12 @@ enum PreviewRenderer {
 
         let timerModel = PomodoroModel(store: store, notificationService: notificationService)
         let weatherService = WeatherService()
+        let aiChatService = AIChatService()
+        let clipboardService = ClipboardService()
+        let calendarService = CalendarService()
+        let musicService = MusicService()
+        let cameraService = CameraMirrorService()
+        let shortcutsService = ShortcutsService()
 
         let compactView = ZStack(alignment: .topLeading) {
             IslandBackground(isExpanded: false)
@@ -28,6 +34,12 @@ enum PreviewRenderer {
                 store: store,
                 timerModel: timerModel,
                 weatherService: weatherService,
+                aiChatService: aiChatService,
+                clipboardService: clipboardService,
+                calendarService: calendarService,
+                musicService: musicService,
+                cameraService: cameraService,
+                shortcutsService: shortcutsService,
                 now: Date(),
                 onCollapse: {},
                 onShowSettings: {}

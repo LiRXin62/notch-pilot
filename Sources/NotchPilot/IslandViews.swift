@@ -12,6 +12,12 @@ struct IslandRootView: View {
 
     @StateObject private var timerModel: PomodoroModel
     @StateObject private var weatherService = WeatherService()
+    @StateObject private var aiChatService = AIChatService()
+    @StateObject private var clipboardService = ClipboardService()
+    @StateObject private var calendarService = CalendarService()
+    @StateObject private var musicService = MusicService()
+    @StateObject private var cameraService = CameraMirrorService()
+    @StateObject private var shortcutsService = ShortcutsService()
     @State private var now = Date()
     @State private var isHovering = false
 
@@ -42,6 +48,12 @@ struct IslandRootView: View {
                     store: store,
                     timerModel: timerModel,
                     weatherService: weatherService,
+                    aiChatService: aiChatService,
+                    clipboardService: clipboardService,
+                    calendarService: calendarService,
+                    musicService: musicService,
+                    cameraService: cameraService,
+                    shortcutsService: shortcutsService,
                     now: now,
                     onCollapse: onCollapse,
                     onShowSettings: onShowSettings
@@ -178,6 +190,12 @@ struct ExpandedIslandView: View {
     @ObservedObject var store: AppStore
     @ObservedObject var timerModel: PomodoroModel
     @ObservedObject var weatherService: WeatherService
+    @ObservedObject var aiChatService: AIChatService
+    @ObservedObject var clipboardService: ClipboardService
+    @ObservedObject var calendarService: CalendarService
+    @ObservedObject var musicService: MusicService
+    @ObservedObject var cameraService: CameraMirrorService
+    @ObservedObject var shortcutsService: ShortcutsService
     let now: Date
     let onCollapse: () -> Void
     let onShowSettings: () -> Void
@@ -281,21 +299,19 @@ struct ExpandedIslandView: View {
         case .system:
             SystemModuleView()
         case .calendar:
-            PlaceholderModuleView(
-                title: "日程",
-                symbolName: "calendar",
-                message: "下一步接 EventKit，把今天的日历事件和提醒事项放进这里。"
-            )
+            CalendarModuleView(calendarService: calendarService)
         case .clipboard:
-            ClipboardModuleView()
+            ClipboardModuleView(clipboardService: clipboardService)
         case .weather:
             WeatherModuleView(weatherService: weatherService, store: store)
         case .ai:
-            PlaceholderModuleView(
-                title: "AI",
-                symbolName: "sparkles",
-                message: "下一步接 OpenAI-compatible 接口，API Key 存入 Keychain。"
-            )
+            AIChatModuleView(chatService: aiChatService, store: store)
+        case .music:
+            MusicModuleView(musicService: musicService)
+        case .camera:
+            CameraMirrorModuleView(cameraService: cameraService)
+        case .shortcuts:
+            ShortcutsModuleView(shortcutsService: shortcutsService)
         case .settings:
             InlineSettingsModuleView(store: store)
         }
@@ -310,7 +326,7 @@ struct ExpandedIslandView: View {
         case .dashboard, .files, .weather: return NPTheme.cyan
         case .todos, .system, .calendar: return NPTheme.green
         case .timer, .launchers, .clipboard: return NPTheme.amber
-        case .notes, .ai, .settings: return NPTheme.rose
+        case .notes, .ai, .settings, .music, .camera, .shortcuts: return NPTheme.rose
         }
     }
 }

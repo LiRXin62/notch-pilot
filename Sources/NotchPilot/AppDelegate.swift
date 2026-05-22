@@ -1,4 +1,6 @@
 import AppKit
+import Combine
+import ServiceManagement
 import SwiftUI
 
 @MainActor
@@ -21,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         configureStatusItem()
         configureHotkeys()
+        configureLoginItem()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -59,6 +62,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         hotkeyMonitor.start()
     }
+
+    private func configureLoginItem() {
+        if store.settings.launchAtLogin {
+            enableLoginItem()
+        }
+
+        store.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.updateLoginItem()
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func enableLoginItem() {
+        if #available(macOS 13.0, *) {
+            do {
+                try SMAppService.mainApp.register()
+            } catch {
+                print("Failed to enable login item: \(error)")
+            }
+        }
+    }
+
+    private func disableLoginItem() {
+        if #available(macOS 13.0, *) {
+            do {
+                try SMAppService.mainApp.unregister()
+            } catch {
+                print("Failed to disable login item: \(error)")
+            }
+        }
+    }
+
+    private func updateLoginItem() {
+        if store.settings.launchAtLogin {
+            enableLoginItem()
+        } else {
+            disableLoginItem()
+        }
+    }
+
+    private var cancellables = Set<AnyCancellable>()
 
     @objc private func showIsland() {
         islandController?.showCompact()

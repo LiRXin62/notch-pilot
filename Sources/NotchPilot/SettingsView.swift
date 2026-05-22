@@ -90,6 +90,34 @@ struct SettingsView: View {
                         .foregroundStyle(NPTheme.cyan)
                 }
 
+                settingsSection("AI 对话") {
+                    HStack {
+                        Text("API Key")
+                            .frame(width: 80, alignment: .leading)
+                        SecureField("OpenAI API Key", text: store.binding(\.aiAPIKey))
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    HStack {
+                        Text("接口地址")
+                            .frame(width: 80, alignment: .leading)
+                        TextField("https://api.openai.com/v1", text: store.binding(\.aiBaseURL))
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    HStack {
+                        Text("模型")
+                            .frame(width: 80, alignment: .leading)
+                        TextField("gpt-3.5-turbo", text: store.binding(\.aiModelName))
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    Text("支持 OpenAI 兼容接口（OpenAI、DeepSeek、Moonshot 等）")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+
+                settingsSection("系统") {
+                    Toggle("开机启动", isOn: store.binding(\.launchAtLogin))
+                }
+
                 settingsSection("数据") {
                     HStack {
                         Button("导出 JSON") { exportData() }

@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import IOKit.ps
 import Darwin.Mach
+import Network
 @preconcurrency import UserNotifications
 
 @MainActor
@@ -42,15 +43,53 @@ final class NotificationService {
 }
 
 @MainActor
+final class NetworkMonitor: ObservableObject {
+    @Published var isConnected = false
+    @Published var connectionType = "未知"
+
+    private let monitor = NWPathMonitor()
+    private let queue = DispatchQueue(label: "NetworkMonitor")
+
+    func start() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor in
+                self?.isConnected = path.status == .satisfied
+                if path.usesInterfaceType(.wifi) {
+                    self?.connectionType = "WiFi"
+                } else if path.usesInterfaceType(.cellular) {
+                    self?.connectionType = "蜂窝"
+                } else if path.usesInterfaceType(.wiredEthernet) {
+                    self?.connectionType = "有线"
+                } else if path.status == .satisfied {
+                    self?.connectionType = "已连接"
+                } else {
+                    self?.connectionType = "未连接"
+                }
+            }
+        }
+        monitor.start(queue: queue)
+    }
+
+    func stop() {
+        monitor.cancel()
+    }
+}
+
+@MainActor
 enum SystemSampler {
     private static var previousCPUInfo: host_cpu_load_info_data_t?
+    static let networkMonitor = NetworkMonitor()
+
+    static func startNetworkMonitoring() {
+        networkMonitor.start()
+    }
 
     static func snapshot() -> SystemSnapshot {
         SystemSnapshot(
             batteryText: batteryText(),
             cpuText: cpuText(),
             memoryText: memoryText(),
-            networkText: "Network ready"
+            networkText: networkMonitor.isConnected ? "\(networkMonitor.connectionType) 已连接" : "未连接"
         )
     }
 

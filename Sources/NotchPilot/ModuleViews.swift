@@ -467,6 +467,9 @@ struct SystemModuleView: View {
                 Spacer()
             }
         }
+        .onAppear {
+            SystemSampler.startNetworkMonitoring()
+        }
         .onReceive(Timer.publish(every: 5, on: .main, in: .common).autoconnect()) { _ in
             snapshot = SystemSampler.snapshot()
         }
@@ -474,33 +477,708 @@ struct SystemModuleView: View {
 }
 
 struct ClipboardModuleView: View {
-    @State private var recentText = ""
+    @ObservedObject var clipboardService: ClipboardService
+    @State private var searchText = ""
+    @State private var showSensitive = false
+
+    var filteredEntries: [ClipboardEntry] {
+        var result = clipboardService.entries
+        if !searchText.isEmpty {
+            result = result.filter { $0.content.localizedCaseInsensitiveContains(searchText) }
+        }
+        if !showSensitive {
+            result = result.filter { !$0.isSensitive }
+        }
+        return result
+    }
+
+    var body: some View {
+        ModuleContainer {
+            VStack(alignment: .leading, spacing: 12) {
+                ModuleHeader(
+                    title: "剪贴板",
+                    subtitle: "\(clipboardService.entries.count) 条记录",
+                    symbolName: "doc.on.clipboard",
+                    tint: NPTheme.amber
+                )
+
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.white.opacity(0.4))
+                    TextField("搜索…", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12))
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(.white.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                ScrollView {
+                    LazyVStack(spacing: 6) {
+                        ForEach(filteredEntries) { entry in
+                            clipboardRow(entry)
+                        }
+                    }
+                }
+
+                HStack {
+                    Toggle("显示敏感内容", isOn: $showSensitive)
+                        .font(.system(size: 10))
+                        .toggleStyle(.checkbox)
+                    Spacer()
+                    Button("清空未置顶") { clipboardService.clearUnpinned() }
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .buttonStyle(.plain)
+                }
+            }
+        }
+        .onAppear { clipboardService.startMonitoring() }
+        .onDisappear { clipboardService.stopMonitoring() }
+    }
+
+    private func clipboardRow(_ entry: ClipboardEntry) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(entry.content)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(entry.isSensitive ? .white.opacity(0.38) : .white.opacity(0.82))
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 6) {
+                    Text(timeSince(entry.timestamp))
+                        .font(.system(size: 9))
+                        .foregroundStyle(NPTheme.mutedText)
+
+                    if entry.isSensitive {
+                        Text("敏感")
+                            .font(.system(size: 8, weight: .medium))
+                            .foregroundStyle(NPTheme.amber)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(NPTheme.amber.opacity(0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
+
+                    if entry.isPinned {
+                        Image(systemName: "pin.fill")
+                            .font(.system(size: 8))
+                            .foregroundStyle(NPTheme.cyan)
+                    }
+                }
+            }
+
+            HStack(spacing: 4) {
+                Button {
+                    clipboardService.togglePin(entry)
+                } label: {
+                    Image(systemName: entry.isPinned ? "pin.slash" : "pin")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    clipboardService.copyToPasteboard(entry)
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    clipboardService.delete(entry)
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(8)
+        .panelRow()
+    }
+
+    private func timeSince(_ date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 60 { return "刚刚" }
+        if seconds < 3600 { return "\(seconds / 60)分钟前" }
+        if seconds < 86400 { return "\(seconds / 3600)小时前" }
+        return "\(seconds / 86400)天前"
+    }
+}
+
+struct CalendarModuleView: View {
+    @ObservedObject var calendarService: CalendarService
+    @State private var newReminderTitle = ""
+
+    var body: some View {
+        ModuleContainer {
+            VStack(alignment: .leading, spacing: 12) {
+                ModuleHeader(
+                    title: "日程",
+                    subtitle: DateFormatters.date.string(from: Date()),
+                    symbolName: "calendar",
+                    tint: NPTheme.green
+                )
+
+                if calendarService.authorizationStatus == .notDetermined {
+                    requestAccessView
+                } else if calendarService.authorizationStatus == .denied || calendarService.authorizationStatus == .restricted {
+                    deniedView
+                } else {
+                    calendarContent
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+        .onAppear {
+            if calendarService.authorizationStatus == .fullAccess {
+                calendarService.fetchEvents()
+                calendarService.fetchReminders()
+            }
+        }
+    }
+
+    private var requestAccessView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "calendar.badge.exclamationmark")
+                .font(.system(size: 28))
+                .foregroundStyle(NPTheme.amber)
+            Text("需要日历权限来显示日程")
+                .font(.system(size: 13))
+                .foregroundStyle(.white.opacity(0.72))
+            Button("授权日历访问") {
+                calendarService.requestAccess()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(NPTheme.green)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 20)
+    }
+
+    private var deniedView: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "lock.shield")
+                .font(.system(size: 24))
+                .foregroundStyle(.white.opacity(0.5))
+            Text("日历权限被拒绝")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.72))
+            Text("请在系统设置 → 隐私与安全 → 日历中授权")
+                .font(.system(size: 11))
+                .foregroundStyle(NPTheme.mutedText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 16)
+    }
+
+    private var calendarContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Events section
+            if !calendarService.events.isEmpty {
+                Text("今日日程")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(NPTheme.mutedText)
+
+                ForEach(calendarService.events) { event in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(Color(hex: event.calendarColor))
+                            .frame(width: 6, height: 6)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(event.title)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.88))
+                                .lineLimit(1)
+                            Text(event.timeRangeText)
+                                .font(.system(size: 10))
+                                .foregroundStyle(NPTheme.mutedText)
+                        }
+
+                        Spacer()
+
+                        Text(event.calendarTitle)
+                            .font(.system(size: 9))
+                            .foregroundStyle(.white.opacity(0.38))
+                    }
+                    .padding(8)
+                    .panelRow()
+                }
+            } else {
+                Text("今日无日程")
+                    .font(.system(size: 12))
+                    .foregroundStyle(NPTheme.mutedText)
+                    .padding(.vertical, 8)
+            }
+
+            // Reminders section
+            HStack {
+                Text("提醒事项")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(NPTheme.mutedText)
+                Spacer()
+                Button {
+                    calendarService.fetchReminders()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+            }
+
+            ForEach(calendarService.reminders.prefix(8)) { reminder in
+                HStack(spacing: 8) {
+                    Button {
+                        calendarService.toggleReminder(reminder)
+                    } label: {
+                        Image(systemName: reminder.isCompleted ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 14))
+                            .foregroundStyle(reminder.isCompleted ? NPTheme.green : .white.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(reminder.title)
+                            .font(.system(size: 12))
+                            .foregroundStyle(reminder.isCompleted ? .white.opacity(0.4) : .white.opacity(0.82))
+                            .strikethrough(reminder.isCompleted)
+                        if !reminder.dueDateText.isEmpty {
+                            Text(reminder.dueDateText)
+                                .font(.system(size: 9))
+                                .foregroundStyle(NPTheme.mutedText)
+                        }
+                    }
+
+                    Spacer()
+
+                    Button {
+                        calendarService.deleteReminder(reminder)
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white.opacity(0.3))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(6)
+                .panelRow()
+            }
+
+            // Add reminder
+            HStack(spacing: 8) {
+                TextField("添加提醒…", text: $newReminderTitle)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .onSubmit {
+                        guard !newReminderTitle.isEmpty else { return }
+                        calendarService.addReminder(title: newReminderTitle)
+                        newReminderTitle = ""
+                    }
+            }
+
+            if let error = calendarService.errorMessage {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(NPTheme.amber)
+                    Text(error)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+            }
+        }
+    }
+}
+
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let r, g, b: UInt64
+        (r, g, b) = ((int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
+        self.init(
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255
+        )
+    }
+}
+
+struct MusicModuleView: View {
+    @ObservedObject var musicService: MusicService
 
     var body: some View {
         ModuleContainer {
             VStack(alignment: .leading, spacing: 14) {
                 ModuleHeader(
-                    title: "剪贴板",
-                    subtitle: "先读当前文本，历史稍后接入",
-                    symbolName: "doc.on.clipboard",
+                    title: "音乐",
+                    subtitle: musicService.nowPlaying.appName.isEmpty ? "未检测到播放" : musicService.nowPlaying.appName,
+                    symbolName: "music.note",
+                    tint: NPTheme.rose
+                )
+
+                if musicService.nowPlaying.isEmpty {
+                    emptyView
+                } else {
+                    nowPlayingView
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+        .onAppear { musicService.startMonitoring() }
+        .onDisappear { musicService.stopMonitoring() }
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "music.note.list")
+                .font(.system(size: 28))
+                .foregroundStyle(.white.opacity(0.3))
+            Text("正在检测音乐播放…")
+                .font(.system(size: 12))
+                .foregroundStyle(NPTheme.mutedText)
+            Text("支持 Apple Music 和 Spotify")
+                .font(.system(size: 10))
+                .foregroundStyle(.white.opacity(0.38))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 20)
+    }
+
+    private var nowPlayingView: some View {
+        VStack(spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                // Album art placeholder
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(NPTheme.rose.opacity(0.2))
+                    .frame(width: 64, height: 64)
+                    .overlay(
+                        Image(systemName: "music.note")
+                            .font(.system(size: 24))
+                            .foregroundStyle(NPTheme.rose.opacity(0.6))
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(musicService.nowPlaying.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+
+                    Text(musicService.nowPlaying.artist)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.72))
+                        .lineLimit(1)
+
+                    Text(musicService.nowPlaying.album)
+                        .font(.system(size: 11))
+                        .foregroundStyle(NPTheme.mutedText)
+                        .lineLimit(1)
+
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(musicService.nowPlaying.isPlaying ? NPTheme.green : NPTheme.amber)
+                            .frame(width: 6, height: 6)
+                        Text(musicService.nowPlaying.isPlaying ? "播放中" : "已暂停")
+                            .font(.system(size: 10))
+                            .foregroundStyle(NPTheme.mutedText)
+                    }
+                }
+
+                Spacer()
+            }
+
+            // Playback controls
+            HStack(spacing: 24) {
+                Button {
+                    musicService.previousTrack()
+                } label: {
+                    Image(systemName: "backward.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    musicService.togglePlayPause()
+                } label: {
+                    Image(systemName: musicService.nowPlaying.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    musicService.nextTrack()
+                } label: {
+                    Image(systemName: "forward.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+struct CameraMirrorModuleView: View {
+    @ObservedObject var cameraService: CameraMirrorService
+
+    var body: some View {
+        ModuleContainer {
+            VStack(alignment: .leading, spacing: 14) {
+                ModuleHeader(
+                    title: "镜子",
+                    subtitle: cameraService.isRunning ? "摄像头已开启" : "前置摄像头预览",
+                    symbolName: "camera.fill",
+                    tint: NPTheme.cyan
+                )
+
+                if cameraService.authorizationStatus == .notDetermined {
+                    requestAccessView
+                } else if cameraService.authorizationStatus == .denied || cameraService.authorizationStatus == .restricted {
+                    deniedView
+                } else if cameraService.isRunning {
+                    cameraPreview
+                } else {
+                    startView
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var requestAccessView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "camera.fill")
+                .font(.system(size: 28))
+                .foregroundStyle(NPTheme.cyan)
+            Text("需要摄像头权限")
+                .font(.system(size: 13))
+                .foregroundStyle(.white.opacity(0.72))
+            Button("授权摄像头") {
+                cameraService.requestAccess()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(NPTheme.cyan)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 20)
+    }
+
+    private var deniedView: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "lock.shield")
+                .font(.system(size: 24))
+                .foregroundStyle(.white.opacity(0.5))
+            Text("摄像头权限被拒绝")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.72))
+            Text("请在系统设置中授权")
+                .font(.system(size: 11))
+                .foregroundStyle(NPTheme.mutedText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 16)
+    }
+
+    private var startView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "camera.viewfinder")
+                .font(.system(size: 36))
+                .foregroundStyle(NPTheme.cyan.opacity(0.6))
+            Text("点击开启前置摄像头")
+                .font(.system(size: 12))
+                .foregroundStyle(NPTheme.mutedText)
+            Button("开启摄像头") {
+                cameraService.startCapture()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(NPTheme.cyan)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 16)
+    }
+
+    private var cameraPreview: some View {
+        VStack(spacing: 10) {
+            CameraPreviewView(cameraService: cameraService)
+                .frame(height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(.white.opacity(0.15), lineWidth: 1)
+                )
+
+            HStack {
+                Spacer()
+                Button {
+                    cameraService.stopCapture()
+                } label: {
+                    Label("关闭", systemImage: "xmark.circle")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+struct CameraPreviewView: NSViewRepresentable {
+    let cameraService: CameraMirrorService
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        if let previewLayer = cameraService.getPreviewLayer() {
+            previewLayer.frame = view.bounds
+            previewLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+            view.layer = previewLayer
+            view.wantsLayer = true
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        if let previewLayer = cameraService.getPreviewLayer() {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            previewLayer.frame = nsView.bounds
+            CATransaction.commit()
+        }
+    }
+}
+
+struct ShortcutsModuleView: View {
+    @ObservedObject var shortcutsService: ShortcutsService
+
+    var body: some View {
+        ModuleContainer {
+            VStack(alignment: .leading, spacing: 12) {
+                ModuleHeader(
+                    title: "快捷指令",
+                    subtitle: "\(shortcutsService.shortcuts.count) 个可用",
+                    symbolName: "bolt.heart",
                     tint: NPTheme.amber
                 )
 
-                Button {
-                    recentText = NSPasteboard.general.string(forType: .string) ?? ""
-                } label: {
-                    Label("读取当前文本", systemImage: "doc.on.clipboard")
+                if shortcutsService.isLoading {
+                    loadingView
+                } else if shortcutsService.shortcuts.isEmpty {
+                    emptyView
+                } else {
+                    shortcutsList
                 }
-                .buttonStyle(.borderedProminent)
 
-                Text(recentText.isEmpty ? "No text captured yet." : recentText)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.72))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
-                    .panelRow()
+                Spacer(minLength: 0)
+            }
+        }
+        .onAppear {
+            if shortcutsService.shortcuts.isEmpty {
+                shortcutsService.fetchShortcuts()
+            }
+        }
+    }
 
+    private var loadingView: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .scaleEffect(0.7)
+            Text("获取快捷指令…")
+                .font(.system(size: 12))
+                .foregroundStyle(NPTheme.mutedText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 20)
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "bolt.heart")
+                .font(.system(size: 24))
+                .foregroundStyle(.white.opacity(0.3))
+            Text("未找到快捷指令")
+                .font(.system(size: 12))
+                .foregroundStyle(NPTheme.mutedText)
+            Button("刷新") {
+                shortcutsService.fetchShortcuts()
+            }
+            .font(.system(size: 11))
+            .foregroundStyle(NPTheme.cyan)
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 16)
+    }
+
+    private var shortcutsList: some View {
+        VStack(spacing: 6) {
+            ForEach(shortcutsService.shortcuts) { shortcut in
+                HStack(spacing: 8) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(NPTheme.amber.opacity(0.7))
+
+                    Text(shortcut.name)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.82))
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    if shortcut.isRunning {
+                        ProgressView()
+                            .scaleEffect(0.5)
+                    } else {
+                        Button {
+                            shortcutsService.runShortcut(shortcut)
+                        } label: {
+                            Text("运行")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(NPTheme.amber)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(8)
+                .panelRow()
+            }
+
+            HStack {
                 Spacer()
+                Button("刷新列表") {
+                    shortcutsService.fetchShortcuts()
+                }
+                .font(.system(size: 10))
+                .foregroundStyle(.white.opacity(0.4))
+                .buttonStyle(.plain)
+            }
+
+            if let error = shortcutsService.errorMessage {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(NPTheme.amber)
+                    Text(error)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
             }
         }
     }
@@ -767,6 +1445,182 @@ struct WeatherModuleView: View {
         if seconds < 60 { return "\(seconds)秒前" }
         if seconds < 3600 { return "\(seconds / 60)分钟前" }
         return "\(seconds / 3600)小时前"
+    }
+}
+
+struct AIChatModuleView: View {
+    @ObservedObject var chatService: AIChatService
+    @ObservedObject var store: AppStore
+    @State private var inputText = ""
+
+    var body: some View {
+        ModuleContainer {
+            VStack(alignment: .leading, spacing: 12) {
+                ModuleHeader(
+                    title: "AI 对话",
+                    subtitle: store.settings.aiModelName,
+                    symbolName: "sparkles",
+                    tint: NPTheme.rose
+                )
+
+                if store.settings.aiAPIKey.isEmpty && KeychainHelper.load(key: "aiAPIKey") == nil {
+                    apiKeyPrompt
+                } else {
+                    chatContent
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var apiKeyPrompt: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("需要配置 AI API Key")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.72))
+            HStack(spacing: 8) {
+                Image(systemName: "key.fill")
+                    .foregroundStyle(NPTheme.amber)
+                Text("前往设置 → AI 配置 API Key 和模型")
+                    .font(.system(size: 12))
+                    .foregroundStyle(NPTheme.mutedText)
+            }
+            .padding(10)
+            .panelRow()
+        }
+    }
+
+    private var chatContent: some View {
+        VStack(spacing: 10) {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        ForEach(chatService.messages) { message in
+                            messageBubble(message)
+                                .id(message.id)
+                        }
+
+                        if chatService.isLoading && chatService.messages.last?.role != "assistant" {
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .scaleEffect(0.6)
+                                Text("思考中…")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(NPTheme.mutedText)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .onChange(of: chatService.messages.count) {
+                    if let last = chatService.messages.last {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
+                    }
+                }
+            }
+
+            if let error = chatService.errorMessage {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(NPTheme.amber)
+                    Text(error)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.6))
+                    Spacer()
+                    Button("清除") { chatService.errorMessage = nil }
+                        .font(.system(size: 11))
+                        .foregroundStyle(NPTheme.cyan)
+                        .buttonStyle(.plain)
+                }
+            }
+
+            HStack(spacing: 8) {
+                TextField("输入消息…", text: $inputText)
+                    .textFieldStyle(.plain)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(.white.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(.white.opacity(0.09), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .onSubmit(sendMessage)
+
+                if chatService.isLoading {
+                    Button {
+                        chatService.stopGeneration()
+                    } label: {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .frame(width: 30, height: 30)
+                            .background(.white.opacity(0.1))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button {
+                        sendMessage()
+                    } label: {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.black)
+                            .frame(width: 30, height: 30)
+                            .background(NPTheme.rose)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+
+            HStack {
+                if chatService.tokenUsage > 0 {
+                    Text("Token: \(chatService.tokenUsage)")
+                        .font(.system(size: 9))
+                        .foregroundStyle(NPTheme.mutedText)
+                }
+                Spacer()
+                Button("清空对话") { chatService.clearHistory() }
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func messageBubble(_ message: AIChatMessage) -> some View {
+        HStack {
+            if message.role == "user" { Spacer(minLength: 40) }
+
+            VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 4) {
+                Text(message.content)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(message.role == "user" ? NPTheme.rose.opacity(0.3) : .white.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+
+            if message.role != "user" { Spacer(minLength: 40) }
+        }
+    }
+
+    private func sendMessage() {
+        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        inputText = ""
+        chatService.send(text, settings: store.settings)
     }
 }
 
