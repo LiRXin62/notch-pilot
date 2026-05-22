@@ -13,6 +13,7 @@ enum PreviewRenderer {
         runtimeState.isExpanded = true
 
         let timerModel = PomodoroModel(store: store, notificationService: notificationService)
+        let weatherService = WeatherService()
 
         let compactView = ZStack(alignment: .topLeading) {
             IslandBackground(isExpanded: false)
@@ -26,6 +27,7 @@ enum PreviewRenderer {
             ExpandedIslandView(
                 store: store,
                 timerModel: timerModel,
+                weatherService: weatherService,
                 now: Date(),
                 onCollapse: {},
                 onShowSettings: {}

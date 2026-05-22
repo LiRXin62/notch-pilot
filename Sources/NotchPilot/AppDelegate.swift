@@ -29,9 +29,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureStatusItem() {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "capsule.tophalf.filled", accessibilityDescription: "Notch Pilot")
-        item.button?.imagePosition = .imageOnly
+        let item = NSStatusBar.system.statusItem(withLength: 28)
+        if let button = item.button {
+            let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+            let img = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: "Notch Pilot")?.withSymbolConfiguration(config)
+            img?.isTemplate = true
+            button.image = img
+        }
 
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Show Island", action: #selector(showIsland), keyEquivalent: "i"))

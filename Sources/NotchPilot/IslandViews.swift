@@ -11,6 +11,7 @@ struct IslandRootView: View {
     let onShowSettings: () -> Void
 
     @StateObject private var timerModel: PomodoroModel
+    @StateObject private var weatherService = WeatherService()
     @State private var now = Date()
     @State private var isHovering = false
 
@@ -40,6 +41,7 @@ struct IslandRootView: View {
                 ExpandedIslandView(
                     store: store,
                     timerModel: timerModel,
+                    weatherService: weatherService,
                     now: now,
                     onCollapse: onCollapse,
                     onShowSettings: onShowSettings
@@ -175,6 +177,7 @@ struct CompactIslandView: View {
 struct ExpandedIslandView: View {
     @ObservedObject var store: AppStore
     @ObservedObject var timerModel: PomodoroModel
+    @ObservedObject var weatherService: WeatherService
     let now: Date
     let onCollapse: () -> Void
     let onShowSettings: () -> Void
@@ -286,11 +289,7 @@ struct ExpandedIslandView: View {
         case .clipboard:
             ClipboardModuleView()
         case .weather:
-            PlaceholderModuleView(
-                title: "天气",
-                symbolName: "cloud.sun",
-                message: "下一步配置天气 Provider，展示当前温度、天气和缓存结果。"
-            )
+            WeatherModuleView(weatherService: weatherService, store: store)
         case .ai:
             PlaceholderModuleView(
                 title: "AI",

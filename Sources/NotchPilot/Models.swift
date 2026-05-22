@@ -82,6 +82,9 @@ struct AppSettings: Codable, Equatable {
     var moduleOrderIDs: [String] = IslandModuleKind.allCases.map(\.rawValue)
     var pomodoroFocusMinutes: Int = 25
     var pomodoroBreakMinutes: Int = 5
+    var weatherAPIKey: String = ""
+    var weatherCity: String = "Beijing"
+    var weatherRefreshMinutes: Int = 30
 }
 
 struct TodoItem: Identifiable, Codable, Equatable {
@@ -130,6 +133,36 @@ struct SystemSnapshot: Codable, Equatable {
     var networkText: String = "Network --"
 
     static let placeholder = SystemSnapshot()
+}
+
+struct WeatherData: Codable, Equatable {
+    var temperature: Double = 0
+    var description: String = ""
+    var iconCode: String = ""
+    var cityName: String = ""
+    var humidity: Int = 0
+    var windSpeed: Double = 0
+    var feelsLike: Double = 0
+    var fetchedAt: Date = Date()
+
+    var temperatureText: String { "\(Int(temperature.rounded()))°" }
+    var feelsLikeText: String { "体感 \(Int(feelsLike.rounded()))°" }
+    var humidityText: String { "\(humidity)%" }
+    var windText: String { String(format: "%.1fm/s", windSpeed) }
+
+    var sfSymbolName: String {
+        switch iconCode.prefix(2) {
+        case "01": return "sun.max.fill"
+        case "02": return "cloud.sun.fill"
+        case "03", "04": return "cloud.fill"
+        case "09": return "cloud.drizzle.fill"
+        case "10": return "cloud.rain.fill"
+        case "11": return "cloud.bolt.fill"
+        case "13": return "snowflake"
+        case "50": return "cloud.fog.fill"
+        default: return "cloud.fill"
+        }
+    }
 }
 
 enum PomodoroPhase: String, Codable, CaseIterable {

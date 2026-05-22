@@ -67,7 +67,8 @@ NOTCH_PILOT_RENDER_PREVIEW=1 swift run
 - 速记保存、删除、转 Todo。
 - 系统状态初版：电池、CPU、内存、网络占位。
 - 剪贴板初版：读取当前文本。
-- 设置页：模块开关、排序、尺寸、番茄钟时长、导入导出、重置。
+- 天气模块：接入 OpenWeatherMap API，用户自配 API Key 和城市，展示温度、天气、湿度、风速。
+- 设置页：模块开关、排序、尺寸、番茄钟时长、天气配置、导入导出、重置。
 - 离屏 UI 预览渲染器，方便持续检查界面效果。
 
 ## 下一步优先级
@@ -76,6 +77,5 @@ NOTCH_PILOT_RENDER_PREVIEW=1 swift run
 - 修正文件暂存为 security-scoped bookmark。
 - 日历/提醒事项 EventKit 集成。
 - 剪贴板历史后台监听和敏感过滤。
-- 天气 Provider。
 - AI OpenAI-compatible 配置和 Keychain。
 - 音乐信息、歌词、Quick Look、AirDrop。

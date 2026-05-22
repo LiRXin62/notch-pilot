@@ -11,7 +11,7 @@ enum InteractionSmokeTest {
         let timerModel = PomodoroModel(store: store, notificationService: notificationService)
 
         assert(store.isModuleEnabled(.todos), "todos should be enabled by default")
-        assert(!store.isModuleEnabled(.weather), "weather placeholder should not be enabled by default")
+        assert(!store.isModuleEnabled(.weather), "weather should not be enabled by default (requires API key)")
 
         store.setActiveModule(.todos)
         assert(store.activeModule() == .todos, "status/module buttons should be able to switch to todos")

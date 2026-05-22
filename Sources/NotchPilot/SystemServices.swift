@@ -110,3 +110,103 @@ enum SystemSampler {
         return "Memory \(megabytes)MB"
     }
 }
+
+@MainActor
+final class WeatherService: ObservableObject {
+    @Published var data: WeatherData?
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private var refreshTask: Task<Void, Never>?
+
+    func fetch(apiKey: String, city: String) {
+        guard !apiKey.isEmpty else {
+            errorMessage = "请先在设置中配置 API Key"
+            return
+        }
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            await self?.performFetch(apiKey: apiKey, city: city)
+        }
+    }
+
+    func cancelRefresh() {
+        refreshTask?.cancel()
+    }
+
+    private func performFetch(apiKey: String, city: String) async {
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+
+        var components = URLComponents(string: "https://api.openweathermap.org/data/2.5/weather")!
+        components.queryItems = [
+            URLQueryItem(name: "q", value: city),
+            URLQueryItem(name: "appid", value: apiKey),
+            URLQueryItem(name: "units", value: "metric"),
+            URLQueryItem(name: "lang", value: "zh_cn")
+        ]
+
+        guard let url = components.url else {
+            await MainActor.run {
+                self.isLoading = false
+                self.errorMessage = "URL 构造失败"
+            }
+            return
+        }
+
+        do {
+            let (responseData, response) = try await URLSession.shared.data(from: url)
+            guard !Task.isCancelled else { return }
+
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard statusCode == 200 else {
+                await MainActor.run {
+                    self.isLoading = false
+                    self.errorMessage = statusCode == 401 ? "API Key 无效" : "请求失败 (\(statusCode))"
+                }
+                return
+            }
+
+            let decoded = try JSONDecoder().decode(OWMResponse.self, from: responseData)
+            await MainActor.run {
+                self.data = WeatherData(
+                    temperature: decoded.main.temp,
+                    description: decoded.weather.first?.description ?? "",
+                    iconCode: decoded.weather.first?.icon ?? "",
+                    cityName: decoded.name,
+                    humidity: decoded.main.humidity,
+                    windSpeed: decoded.wind.speed,
+                    feelsLike: decoded.main.feels_like,
+                    fetchedAt: Date()
+                )
+                self.isLoading = false
+            }
+        } catch {
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                self.isLoading = false
+                self.errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+private struct OWMResponse: Decodable {
+    struct Weather: Decodable {
+        let description: String
+        let icon: String
+    }
+    struct Main: Decodable {
+        let temp: Double
+        let feels_like: Double
+        let humidity: Int
+    }
+    struct Wind: Decodable {
+        let speed: Double
+    }
+    let weather: [Weather]
+    let main: Main
+    let wind: Wind
+    let name: String
+}

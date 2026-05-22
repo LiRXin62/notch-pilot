@@ -627,6 +627,172 @@ struct DashboardListPanel: View {
     }
 }
 
+struct WeatherModuleView: View {
+    @ObservedObject var weatherService: WeatherService
+    @ObservedObject var store: AppStore
+    @State private var showSettings = false
+
+    var body: some View {
+        ModuleContainer {
+            VStack(alignment: .leading, spacing: 14) {
+                ModuleHeader(
+                    title: "天气",
+                    subtitle: weatherService.data?.cityName ?? store.settings.weatherCity,
+                    symbolName: "cloud.sun",
+                    tint: NPTheme.cyan
+                )
+
+                if store.settings.weatherAPIKey.isEmpty {
+                    apiKeyPrompt
+                } else if let data = weatherService.data {
+                    weatherContent(data)
+                } else if weatherService.isLoading {
+                    loadingView
+                } else if let error = weatherService.errorMessage {
+                    errorView(error)
+                } else {
+                    Text("点击刷新获取天气")
+                        .foregroundStyle(NPTheme.mutedText)
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+        .onAppear {
+            if weatherService.data == nil && !store.settings.weatherAPIKey.isEmpty {
+                weatherService.fetch(apiKey: store.settings.weatherAPIKey, city: store.settings.weatherCity)
+            }
+        }
+    }
+
+    private var apiKeyPrompt: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("需要配置 OpenWeatherMap API Key")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.72))
+
+            HStack(spacing: 8) {
+                Image(systemName: "key.fill")
+                    .foregroundStyle(NPTheme.amber)
+                Text("前往设置 → 天气配置 API Key 和城市")
+                    .font(.system(size: 12))
+                    .foregroundStyle(NPTheme.mutedText)
+            }
+            .padding(10)
+            .panelRow()
+
+            Link("免费申请 API Key →", destination: URL(string: "https://openweathermap.org/appid")!)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(NPTheme.cyan)
+        }
+    }
+
+    private func weatherContent(_ data: WeatherData) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(data.temperatureText)
+                        .font(.system(size: 42, weight: .thin, design: .rounded))
+                    Text(data.description)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.78))
+                    Text(data.feelsLikeText)
+                        .font(.system(size: 11))
+                        .foregroundStyle(NPTheme.mutedText)
+                }
+
+                Spacer()
+
+                Image(systemName: data.sfSymbolName)
+                    .font(.system(size: 44))
+                    .foregroundStyle(NPTheme.cyan.opacity(0.85))
+                    .symbolRenderingMode(.hierarchical)
+            }
+
+            HStack(spacing: 0) {
+                DetailChip(icon: "humidity.fill", value: data.humidityText, label: "湿度")
+                DetailChip(icon: "wind", value: data.windText, label: "风速")
+                DetailChip(icon: "clock", value: timeSince(data.fetchedAt), label: "更新")
+            }
+
+            HStack {
+                Spacer()
+                Button {
+                    weatherService.fetch(apiKey: store.settings.weatherAPIKey, city: store.settings.weatherCity)
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+                .disabled(weatherService.isLoading)
+            }
+        }
+    }
+
+    private var loadingView: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .scaleEffect(0.7)
+            Text("获取天气中…")
+                .font(.system(size: 12))
+                .foregroundStyle(NPTheme.mutedText)
+        }
+        .padding(.top, 20)
+    }
+
+    private func errorView(_ message: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(NPTheme.amber)
+                Text(message)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.72))
+            }
+
+            Button("重试") {
+                weatherService.fetch(apiKey: store.settings.weatherAPIKey, city: store.settings.weatherCity)
+            }
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(NPTheme.cyan)
+            .buttonStyle(.plain)
+        }
+        .padding(10)
+        .panelRow()
+    }
+
+    private func timeSince(_ date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 60 { return "\(seconds)秒前" }
+        if seconds < 3600 { return "\(seconds / 60)分钟前" }
+        return "\(seconds / 3600)小时前"
+    }
+}
+
+struct DetailChip: View {
+    let icon: String
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundStyle(NPTheme.cyan.opacity(0.7))
+            Text(value)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.88))
+            Text(label)
+                .font(.system(size: 9))
+                .foregroundStyle(NPTheme.mutedText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .panelRow()
+    }
+}
+
 struct ModuleContainer<Content: View>: View {
     @ViewBuilder var content: Content
 

@@ -32,7 +32,8 @@
 - 速记。
 - 系统状态初版。
 - 剪贴板读取初版。
-- 设置页。
+- 天气模块（OpenWeatherMap API，用户自配 Key）。
+- 设置页（含天气配置）。
 - JSON 导入导出。
 - UI 预览渲染器：`NOTCH_PILOT_RENDER_PREVIEW=1 swift run`。
 
@@ -64,7 +65,6 @@ NOTCH_PILOT_RENDER_PREVIEW=1 swift run
 - Quick Look 和 AirDrop。
 - EventKit 日历/提醒事项。
 - 剪贴板历史后台监听和敏感过滤。
-- 天气模块。
 - AI 模块和 Keychain。
 - 音乐信息与歌词。
 - 摄像头镜子。

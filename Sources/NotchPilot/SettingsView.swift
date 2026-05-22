@@ -71,6 +71,25 @@ struct SettingsView: View {
                     Stepper("休息 \(store.settings.pomodoroBreakMinutes)m", value: store.binding(\.pomodoroBreakMinutes), in: 1...60)
                 }
 
+                settingsSection("天气") {
+                    HStack {
+                        Text("API Key")
+                            .frame(width: 80, alignment: .leading)
+                        SecureField("OpenWeatherMap API Key", text: store.binding(\.weatherAPIKey))
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    HStack {
+                        Text("城市")
+                            .frame(width: 80, alignment: .leading)
+                        TextField("Beijing", text: store.binding(\.weatherCity))
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    Stepper("刷新间隔 \(store.settings.weatherRefreshMinutes) 分钟", value: store.binding(\.weatherRefreshMinutes), in: 5...120)
+                    Link("免费申请 OpenWeatherMap API Key →", destination: URL(string: "https://openweathermap.org/appid")!)
+                        .font(.system(size: 11))
+                        .foregroundStyle(NPTheme.cyan)
+                }
+
                 settingsSection("数据") {
                     HStack {
                         Button("导出 JSON") { exportData() }
