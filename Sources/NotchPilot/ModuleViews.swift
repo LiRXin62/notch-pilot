@@ -470,6 +470,9 @@ struct SystemModuleView: View {
                     SummaryTile(title: localizer.t("内存"), value: snapshot.memoryText, symbolName: "memorychip", tint: NPTheme.cyan)
                     SummaryTile(title: localizer.t("网络"), value: snapshot.networkText, symbolName: "network", tint: NPTheme.rose)
                 }
+                HStack(spacing: 10) {
+                    SummaryTile(title: localizer.t("网速"), value: snapshot.networkSpeedText, symbolName: "arrow.up.arrow.down", tint: NPTheme.amber)
+                }
 
                 Spacer()
             }

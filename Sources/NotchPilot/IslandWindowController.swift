@@ -29,6 +29,7 @@ final class IslandWindowController: NSObject {
     private var cancellables = Set<AnyCancellable>()
     private var state: IslandPresentationState = .compact
     private var collapseTask: DispatchWorkItem?
+    private var isHiddenByFullscreen = false
 
     init(
         store: AppStore,
@@ -44,6 +45,7 @@ final class IslandWindowController: NSObject {
         createWindows()
         observeSettings()
         observeScreenChanges()
+        observeFullscreenChanges()
     }
 
     func showCompact() {
@@ -168,6 +170,10 @@ final class IslandWindowController: NSObject {
         } else {
             resizeAllWindows(animated: false)
         }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.checkFullscreenState()
+        }
     }
 
     private func observeScreenChanges() {
@@ -190,6 +196,57 @@ final class IslandWindowController: NSObject {
             showCompact()
         } else {
             resizeAllWindows(animated: false)
+        }
+    }
+
+    private func observeFullscreenChanges() {
+        NotificationCenter.default.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self?.checkFullscreenState()
+            }
+        }
+        checkFullscreenState()
+    }
+
+    private func checkFullscreenState() {
+        guard store.settings.hideInFullscreen else {
+            if isHiddenByFullscreen {
+                isHiddenByFullscreen = false
+                for window in windows { window.orderFrontRegardless() }
+            }
+            return
+        }
+
+        guard let screen = NSScreen.main else { return }
+        let screenFrame = screen.frame
+        let ownPID = NSRunningApplication.current.processIdentifier
+
+        let windowList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
+        let hasFullscreen = windowList.contains { info in
+            guard
+                let layer = info[kCGWindowLayer as String] as? Int, layer == 0,
+                let pid = info[kCGWindowOwnerPID as String] as? pid_t, pid != ownPID,
+                let bounds = info[kCGWindowBounds as String] as? [String: CGFloat],
+                let x = bounds["X"], let y = bounds["Y"],
+                let w = bounds["Width"], let h = bounds["Height"]
+            else { return false }
+
+            return abs(x - screenFrame.origin.x) < 2
+                && abs(y - screenFrame.origin.y) < 2
+                && abs(w - screenFrame.width) < 2
+                && abs(h - screenFrame.height) < 2
+        }
+
+        if hasFullscreen && !isHiddenByFullscreen {
+            isHiddenByFullscreen = true
+            for window in windows { window.orderOut(nil) }
+        } else if !hasFullscreen && isHiddenByFullscreen {
+            isHiddenByFullscreen = false
+            for window in windows { window.orderFrontRegardless() }
         }
     }
 

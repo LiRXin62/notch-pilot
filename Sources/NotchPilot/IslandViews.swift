@@ -277,13 +277,24 @@ struct ExpandedIslandView: View {
     private var moduleStrip: some View {
         HStack(spacing: 8) {
             ForEach(store.visibleModules()) { module in
-                IconToolButton(
-                    symbolName: module.symbolName,
-                    isActive: activeModule == module,
-                    accent: accent(for: module),
-                    help: module.title
-                ) {
-                    store.setActiveModule(module)
+                if store.settings.showModuleIcons {
+                    IconToolButton(
+                        symbolName: module.symbolName,
+                        isActive: activeModule == module,
+                        accent: accent(for: module),
+                        help: module.title
+                    ) {
+                        store.setActiveModule(module)
+                    }
+                } else {
+                    ModuleTabButton(
+                        title: localizer.t(module.title),
+                        symbolName: module.symbolName,
+                        isActive: activeModule == module,
+                        accent: accent(for: module)
+                    ) {
+                        store.setActiveModule(module)
+                    }
                 }
             }
             Spacer(minLength: 0)

@@ -3,6 +3,7 @@ import Foundation
 import IOKit.ps
 import Darwin.Mach
 import Network
+import Darwin
 @preconcurrency import UserNotifications
 
 @MainActor
@@ -76,20 +77,69 @@ final class NetworkMonitor: ObservableObject {
 }
 
 @MainActor
+final class NetworkSpeedMonitor {
+    private var previousBytesIn: UInt64 = 0
+    private var previousBytesOut: UInt64 = 0
+    private(set) var downloadSpeed: UInt64 = 0
+    private(set) var uploadSpeed: UInt64 = 0
+    private var hasSampled = false
+
+    func sample() {
+        var bytesIn: UInt64 = 0
+        var bytesOut: UInt64 = 0
+        var ifaddrPointer: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddrPointer) == 0, let first = ifaddrPointer else { return }
+        defer { freeifaddrs(ifaddrPointer) }
+
+        for ptr in sequence(first: first, next: { $0.pointee.ifa_next }) {
+            let flags = ptr.pointee.ifa_flags
+            guard flags & UInt32(IFF_UP) != 0, flags & UInt32(IFF_LOOPBACK) == 0 else { continue }
+            let family = ptr.pointee.ifa_addr.pointee.sa_family
+            guard family == UInt8(AF_LINK), let data = ptr.pointee.ifa_data else { continue }
+            let networkData = data.withMemoryRebound(to: if_data.self, capacity: 1) { $0 }
+            bytesIn += UInt64(networkData.pointee.ifi_ibytes)
+            bytesOut += UInt64(networkData.pointee.ifi_obytes)
+        }
+
+        if hasSampled {
+            downloadSpeed = bytesIn &- previousBytesIn
+            uploadSpeed = bytesOut &- previousBytesOut
+        }
+        previousBytesIn = bytesIn
+        previousBytesOut = bytesOut
+        hasSampled = true
+    }
+
+    var speedText: String {
+        "↑ \(Self.formatBytes(uploadSpeed))/s  ↓ \(Self.formatBytes(downloadSpeed))/s"
+    }
+
+    private static func formatBytes(_ bytes: UInt64) -> String {
+        if bytes < 1024 { return "\(bytes) B" }
+        if bytes < 1024 * 1024 { return String(format: "%.1f KB", Double(bytes) / 1024) }
+        if bytes < 1024 * 1024 * 1024 { return String(format: "%.1f MB", Double(bytes) / 1024 / 1024) }
+        return String(format: "%.1f GB", Double(bytes) / 1024 / 1024 / 1024)
+    }
+}
+
+@MainActor
 enum SystemSampler {
     private static var previousCPUInfo: host_cpu_load_info_data_t?
     static let networkMonitor = NetworkMonitor()
+    static let speedMonitor = NetworkSpeedMonitor()
 
     static func startNetworkMonitoring() {
         networkMonitor.start()
     }
 
     static func snapshot() -> SystemSnapshot {
-        SystemSnapshot(
+        speedMonitor.sample()
+        return SystemSnapshot(
             batteryText: batteryText(),
             cpuText: cpuText(),
             memoryText: memoryText(),
-            networkText: networkMonitor.isConnected ? "\(networkMonitor.connectionType) " + Localizer.shared.t("已连接") : Localizer.shared.t("未连接")
+            networkText: networkMonitor.isConnected ? "\(networkMonitor.connectionType) " + Localizer.shared.t("已连接") : Localizer.shared.t("未连接"),
+            networkSpeedText: speedMonitor.speedText
         )
     }
 

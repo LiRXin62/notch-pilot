@@ -245,6 +245,7 @@ final class Localizer: ObservableObject {
         "先把手感做好，再继续加模块。": "Get the feel right first, then add modules.",
 
         // MARK: - Status Bar Menu
+        "网速": "Speed",
         "显示小岛": "Show Island",
         "导出数据…": "Export Data…",
         "导入数据…": "Import Data…",
