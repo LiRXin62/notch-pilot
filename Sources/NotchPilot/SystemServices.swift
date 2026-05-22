@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 import IOKit.ps
 import Darwin.Mach
@@ -207,6 +208,24 @@ final class WeatherService: ObservableObject {
     @Published var errorMessage: String?
 
     private var refreshTask: Task<Void, Never>?
+    private var cancellables = Set<AnyCancellable>()
+    private let storageURL: URL
+
+    init() {
+        let fm = FileManager.default
+        let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let dir = base.appendingPathComponent("NotchPilot", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        storageURL = dir.appendingPathComponent("weather.json")
+
+        load()
+
+        $data
+            .dropFirst()
+            .debounce(for: .seconds(1), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.persist() }
+            .store(in: &cancellables)
+    }
 
     func fetch(apiKey: String, city: String) {
         guard !apiKey.isEmpty else {
@@ -278,6 +297,22 @@ final class WeatherService: ObservableObject {
                 self.errorMessage = error.localizedDescription
             }
         }
+    }
+
+    private func load() {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let fileData = try? Data(contentsOf: storageURL),
+              let loaded = try? decoder.decode(WeatherData.self, from: fileData) else { return }
+        data = loaded
+    }
+
+    private func persist() {
+        guard let data else { return }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let fileData = try? encoder.encode(data) else { return }
+        try? fileData.write(to: storageURL, options: [.atomic])
     }
 }
 

@@ -1235,28 +1235,6 @@ struct InlineSettingsModuleView: View {
     }
 }
 
-struct PlaceholderModuleView: View {
-    let title: String
-    let symbolName: String
-    let message: String
-
-    var body: some View {
-        ModuleContainer {
-            VStack(alignment: .leading, spacing: 12) {
-                Image(systemName: symbolName)
-                    .font(.system(size: 30))
-                    .foregroundStyle(.white.opacity(0.72))
-                Text(title)
-                    .font(.system(size: 20, weight: .semibold))
-                Text(message)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.62))
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer()
-            }
-        }
-    }
-}
 
 struct SummaryTile: View {
     let title: String

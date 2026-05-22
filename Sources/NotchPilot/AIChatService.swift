@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 struct AIChatMessage: Identifiable, Codable, Equatable {
@@ -15,6 +16,24 @@ final class AIChatService: ObservableObject {
     @Published var tokenUsage: Int = 0
 
     private var streamTask: Task<Void, Never>?
+    private var cancellables = Set<AnyCancellable>()
+    private let storageURL: URL
+
+    init() {
+        let fm = FileManager.default
+        let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let dir = base.appendingPathComponent("NotchPilot", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        storageURL = dir.appendingPathComponent("chat.json")
+
+        load()
+
+        $messages
+            .dropFirst()
+            .debounce(for: .seconds(1), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.persist() }
+            .store(in: &cancellables)
+    }
 
     func send(_ text: String, settings: AppSettings) {
         let apiKey = KeychainHelper.load(key: "aiAPIKey") ?? settings.aiAPIKey
@@ -37,6 +56,7 @@ final class AIChatService: ObservableObject {
         messages.removeAll()
         tokenUsage = 0
         errorMessage = nil
+        persist()
     }
 
     func stopGeneration() {
@@ -132,5 +152,20 @@ final class AIChatService: ObservableObject {
                 self.errorMessage = error.localizedDescription
             }
         }
+    }
+
+    private func load() {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let data = try? Data(contentsOf: storageURL),
+              let loaded = try? decoder.decode([AIChatMessage].self, from: data) else { return }
+        messages = loaded
+    }
+
+    private func persist() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(messages) else { return }
+        try? data.write(to: storageURL, options: [.atomic])
     }
 }

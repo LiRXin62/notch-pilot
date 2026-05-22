@@ -14,9 +14,24 @@ final class ClipboardService: ObservableObject {
     @Published var entries: [ClipboardEntry] = []
     private var lastChangeCount: Int = 0
     private var timer: Timer?
+    private var cancellables = Set<AnyCancellable>()
+    private let storageURL: URL
 
     init() {
+        let fm = FileManager.default
+        let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let dir = base.appendingPathComponent("NotchPilot", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        storageURL = dir.appendingPathComponent("clipboard.json")
+
         lastChangeCount = NSPasteboard.general.changeCount
+        load()
+
+        $entries
+            .dropFirst()
+            .debounce(for: .seconds(1), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in self?.persist() }
+            .store(in: &cancellables)
     }
 
     func startMonitoring() {
@@ -95,5 +110,20 @@ final class ClipboardService: ObservableObject {
             }
         }
         return false
+    }
+
+    private func load() {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let data = try? Data(contentsOf: storageURL),
+              let loaded = try? decoder.decode([ClipboardEntry].self, from: data) else { return }
+        entries = loaded
+    }
+
+    private func persist() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(entries) else { return }
+        try? data.write(to: storageURL, options: [.atomic])
     }
 }
