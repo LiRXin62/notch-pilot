@@ -82,8 +82,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if #available(macOS 13.0, *) {
             do {
                 try SMAppService.mainApp.register()
+                print("Login item registered via SMAppService")
             } catch {
-                print("Failed to enable login item: \(error)")
+                print("SMAppService failed (unsigned app?): \(error)")
+                enableLoginItemViaAppleScript()
             }
         }
     }
@@ -93,9 +95,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 try SMAppService.mainApp.unregister()
             } catch {
-                print("Failed to disable login item: \(error)")
+                disableLoginItemViaAppleScript()
             }
         }
+    }
+
+    private func enableLoginItemViaAppleScript() {
+        let appPath = Bundle.main.bundlePath
+        let script = """
+        tell application "System Events"
+            make login item at end with properties {path:"\(appPath)", hidden:false}
+        end tell
+        """
+        var error: NSDictionary?
+        NSAppleScript(source: script)?.executeAndReturnError(&error)
+        if let error {
+            print("AppleScript login item failed: \(error)")
+        } else {
+            print("Login item added via System Events")
+        }
+    }
+
+    private func disableLoginItemViaAppleScript() {
+        let script = """
+        tell application "System Events"
+            delete login item "Notch Pilot"
+        end tell
+        """
+        var error: NSDictionary?
+        NSAppleScript(source: script)?.executeAndReturnError(&error)
     }
 
     private func updateLoginItem() {

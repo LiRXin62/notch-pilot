@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>zh_CN</string>
+    <key>CFBundleExecutable</key>
+    <string>NotchPilot</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.notchpilot.app</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Notch Pilot</string>
+    <key>CFBundleDisplayName</key>
+    <string>Notch Pilot</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.2.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Notch Pilot 需要日历权限来显示您的日程和提醒事项</string>
+    <key>NSRemindersUsageDescription</key>
+    <string>Notch Pilot 需要提醒事项权限来管理您的待办提醒</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Notch Pilot 需要摄像头权限来提供镜子功能</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Notch Pilot 需要 AppleScript 权限来控制音乐播放</string>
+    <key>SMAppServiceType</key>
+    <string>SMAppServiceMainApp</string>
+</dict>
+</plist>
