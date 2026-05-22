@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotkeyMonitor = HotkeyMonitor()
     private let localizer = Localizer.shared
     private var statusItem: NSStatusItem?
+    private var statusMenu: NSMenu?
     private var islandController: IslandWindowController?
     private var settingsController: SettingsWindowController?
 
@@ -28,6 +29,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configureStatusItem()
         configureHotkeys()
         configureLoginItem()
+
+        localizer.$language
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.updateMenuTitles() }
+            .store(in: &cancellables)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -45,16 +51,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Show Island", action: #selector(showIsland), keyEquivalent: "i"))
-        menu.addItem(NSMenuItem(title: "Settings", action: #selector(showSettingsAction), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: "", action: #selector(showIsland), keyEquivalent: "i"))
+        menu.addItem(NSMenuItem(title: "", action: #selector(showSettingsAction), keyEquivalent: ","))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Export Data...", action: #selector(exportData), keyEquivalent: "e"))
-        menu.addItem(NSMenuItem(title: "Import Data...", action: #selector(importData), keyEquivalent: "o"))
+        menu.addItem(NSMenuItem(title: "", action: #selector(exportData), keyEquivalent: "e"))
+        menu.addItem(NSMenuItem(title: "", action: #selector(importData), keyEquivalent: "o"))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Notch Pilot", action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "", action: #selector(quit), keyEquivalent: "q"))
         menu.items.forEach { $0.target = self }
         item.menu = menu
         statusItem = item
+        statusMenu = menu
+        updateMenuTitles()
+    }
+
+    private func updateMenuTitles() {
+        guard let menu = statusMenu else { return }
+        let items = menu.items
+        guard items.count >= 7 else { return }
+        items[0].title = localizer.t("显示小岛")
+        items[1].title = localizer.t("设置")
+        items[3].title = localizer.t("导出数据…")
+        items[4].title = localizer.t("导入数据…")
+        items[6].title = localizer.t("退出 Notch Pilot")
     }
 
     private func configureHotkeys() {

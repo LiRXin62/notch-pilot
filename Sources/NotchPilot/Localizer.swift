@@ -244,6 +244,12 @@ final class Localizer: ObservableObject {
         "把顶部岛做成真正愿意常驻的工具，而不是 demo。": "Make the top island a tool worth keeping, not just a demo.",
         "先把手感做好，再继续加模块。": "Get the feel right first, then add modules.",
 
+        // MARK: - Status Bar Menu
+        "显示小岛": "Show Island",
+        "导出数据…": "Export Data…",
+        "导入数据…": "Import Data…",
+        "退出 Notch Pilot": "Quit Notch Pilot",
+
         // MARK: - Login Item
         "需要自动化权限": "Automation permission required",
         "请在系统设置中授权 Notch Pilot 的自动化权限": "Please authorize Notch Pilot's automation permission in System Settings",

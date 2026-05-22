@@ -54,14 +54,14 @@ struct SettingsView: View {
                 settingsSection(localizer.t("模块")) {
                     Picker(localizer.t("默认模块"), selection: store.binding(\.activeModuleRawValue)) {
                         ForEach(IslandModuleKind.allCases) { module in
-                            Text(module.title).tag(module.rawValue)
+                            Text(localizer.t(module.title)).tag(module.rawValue)
                         }
                     }
                     .pickerStyle(.menu)
 
                     ForEach(IslandModuleKind.allCases) { module in
                         HStack {
-                            Toggle(module.title, isOn: store.moduleEnabledBinding(module))
+                            Toggle(localizer.t(module.title), isOn: store.moduleEnabledBinding(module))
                             Spacer()
                             Button {
                                 store.moveModule(module, offset: -1)

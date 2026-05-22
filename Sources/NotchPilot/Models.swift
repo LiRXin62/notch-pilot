@@ -145,6 +145,7 @@ struct SystemSnapshot: Codable, Equatable {
     var cpuText: String = "CPU --"
     var memoryText: String = "Memory --"
     var networkText: String = "Network --"
+    var networkSpeedText: String = "↑ 0 B/s  ↓ 0 B/s"
 
     static let placeholder = SystemSnapshot()
 }
