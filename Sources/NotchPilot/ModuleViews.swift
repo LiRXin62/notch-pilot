@@ -382,6 +382,8 @@ struct NotesModuleView: View {
     @ObservedObject var store: AppStore
     @EnvironmentObject var localizer: Localizer
     @State private var draft = ""
+    @State private var showToast = false
+    @State private var toastMessage = ""
 
     var body: some View {
         ModuleContainer {
@@ -427,6 +429,11 @@ struct NotesModuleView: View {
                                     Spacer()
                                     Button(localizer.t("转待办")) {
                                         store.convertNoteToTodo(note)
+                                        toastMessage = localizer.t("已转为待办")
+                                        showToast = true
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                            showToast = false
+                                        }
                                     }
                                     .controlSize(.small)
                                     Button {
@@ -442,6 +449,19 @@ struct NotesModuleView: View {
                         }
                     }
                     .padding(.bottom, 8)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if showToast {
+                    Text(toastMessage)
+                        .font(.system(size: 12, weight: .medium))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.green.opacity(0.9))
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .padding(.bottom, 8)
+                        .transition(.opacity)
                 }
             }
         }

@@ -196,6 +196,7 @@ final class AppStore: ObservableObject {
 
     func convertNoteToTodo(_ note: QuickNote) {
         addTodo(title: note.content)
+        deleteNote(note.id)
     }
 
     func snapshotData() throws -> Data {

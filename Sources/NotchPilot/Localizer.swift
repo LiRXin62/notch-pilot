@@ -88,6 +88,7 @@ final class Localizer: ObservableObject {
         "回车添加，点圆圈完成": "Press Enter to add, tap circle to complete",
         "添加一个任务": "Add a task",
         "转待办": "Convert to Todo",
+        "已转为待办": "Converted to Todo",
 
         // MARK: - Timer
         "专注计时": "Pomodoro Timer",
